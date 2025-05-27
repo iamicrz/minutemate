@@ -38,22 +38,45 @@ export async function POST(req: Request) {
       const role = unsafe_metadata?.role as "seeker" | "provider" | "admin" | undefined;
       const primaryEmail = email_addresses?.[0]?.email_address;
 
-      console.log('Processing new user:', { id, email: primaryEmail, role });
-
-      // Create new user record
-      const { error: insertError } = await supabase
+      // Check if user already exists
+      const { data: existingUser, error: fetchError } = await supabase
         .from("users")
-        .insert([
-          {
-            clerk_id: id,
-            email: primaryEmail,
-            role: role || null, // Allow null role initially
-          }
-        ]);
+        .select("id")
+        .eq("clerk_id", id)
+        .single();
 
-      if (insertError) {
-        console.error("Error creating user in Supabase:", insertError);
-        return new Response("Error creating user", { status: 500 });
+      if (fetchError && fetchError.code !== "PGRST116") {
+        console.error("Error checking existing user:", fetchError);
+        return new Response("Error checking user", { status: 500 });
+      }
+
+      if (!existingUser) {
+        // Insert new user
+        const { error: insertError } = await supabase
+          .from("users")
+          .insert([
+            {
+              clerk_id: id,
+              email: primaryEmail,
+              role: role || null,
+            }
+          ]);
+        if (insertError) {
+          console.error("Error creating user in Supabase:", insertError);
+          return new Response("Error creating user", { status: 500 });
+        }
+        console.log('User created successfully in Supabase!');
+      } else {
+        // Update existing user
+        const { error: updateError } = await supabase
+          .from("users")
+          .update({ role })
+          .eq("clerk_id", id);
+        if (updateError) {
+          console.error("Error updating user in Supabase:", updateError);
+          return new Response("Error updating user", { status: 500 });
+        }
+        console.log('User updated successfully in Supabase!');
       }
     } else if (payload.type === "user.updated") {
       const { id, public_metadata } = payload.data;
