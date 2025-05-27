@@ -1,7 +1,8 @@
 "use client"
 
-import { SignInButton, SignUpButton } from "@clerk/nextjs"
+import { SignInButton } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 export default function AuthButtons() {
   return (
@@ -11,9 +12,11 @@ export default function AuthButtons() {
           Log in
         </Button>
       </SignInButton>
-      <SignUpButton mode="modal">
-        <Button size="sm">Sign up</Button>
-      </SignUpButton>
+      <Link href="/auth/signup" passHref>
+        <Button size="sm" asChild>
+          Sign up
+        </Button>
+      </Link>
     </>
   )
-} 
+}
