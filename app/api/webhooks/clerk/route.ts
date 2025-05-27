@@ -33,11 +33,33 @@ export async function POST(req: Request) {
     const payload = await req.json();
     console.log('Webhook received:', payload);
     
-    if (payload.type === "user.created" || payload.type === "user.updated") {
+    if (payload.type === "user.created") {
+      const { id, email_addresses, unsafe_metadata } = payload.data;
+      const role = unsafe_metadata?.role as "seeker" | "provider" | "admin" | undefined;
+      const primaryEmail = email_addresses?.[0]?.email_address;
+
+      console.log('Processing new user:', { id, email: primaryEmail, role });
+
+      // Create new user record
+      const { error: insertError } = await supabase
+        .from("users")
+        .insert([
+          {
+            clerk_id: id,
+            email: primaryEmail,
+            role: role || null, // Allow null role initially
+          }
+        ]);
+
+      if (insertError) {
+        console.error("Error creating user in Supabase:", insertError);
+        return new Response("Error creating user", { status: 500 });
+      }
+    } else if (payload.type === "user.updated") {
       const { id, public_metadata } = payload.data;
       const role = public_metadata?.role as "seeker" | "provider" | "admin" | undefined;
 
-      console.log('Processing user event:', { id, role });
+      console.log('Processing user update:', { id, role });
 
       if (role) {
         const { error } = await supabase
