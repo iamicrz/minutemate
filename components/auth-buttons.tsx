@@ -12,11 +12,11 @@ export default function AuthButtons() {
           Log in
         </Button>
       </SignInButton>
-      <Link href="/auth/signup" passHref>
-        <Button size="sm" asChild>
+      <Button size="sm" asChild>
+        <Link href="/auth/signup">
           Sign up
-        </Button>
-      </Link>
+        </Link>
+      </Button>
     </>
   )
 }
