@@ -26,6 +26,7 @@ async function validateRequest(req: Request) {
 }
 
 export async function POST(req: Request) {
+  console.log("==== Clerk webhook called ====");
   try {
     const validatedHeaders = await validateRequest(req);
     console.log('Validated headers:', validatedHeaders);
