@@ -15,9 +15,9 @@ export default function RedirectPage() {
   useEffect(() => {
     const handleRedirect = async () => {
       try {
-        // Wait for both Clerk and user data to be loaded
-        if (!isLoaded || !userDataLoaded) {
-          console.log("Waiting for data to load...", { isLoaded, userDataLoaded })
+        // Wait for Clerk to be loaded
+        if (!isLoaded) {
+          console.log("Waiting for Clerk to load...", { isLoaded })
           return
         }
 
@@ -28,24 +28,31 @@ export default function RedirectPage() {
           return
         }
 
-        // If still loading user data, wait
-        if (loading) {
-          console.log("Still loading user data...")
-          return
-        }
-
-        // Try to get role from userData (Supabase) or Clerk metadata
-        const role = userData?.role || user?.publicMetadata?.role;
-
-        if (!role) {
-          // If role is missing, send to onboarding as a fallback
-          await router.replace("/onboarding");
+        // If Clerk's role is present, redirect immediately
+        const clerkRole = user?.publicMetadata?.role;
+        if (clerkRole) {
+          const redirectPath = `/${clerkRole}/dashboard`;
+          console.log("Clerk role found, redirecting to:", redirectPath);
+          await router.replace(redirectPath);
           return;
         }
 
-        const redirectPath = `/${role}/dashboard`;
-        console.log("Attempting to redirect to:", redirectPath);
-        await router.replace(redirectPath);
+        // Otherwise, wait for Supabase user data to load
+        if (!userDataLoaded || loading) {
+          console.log("Waiting for Supabase user data to load...", { userDataLoaded, loading });
+          return;
+        }
+
+        // If Supabase role is present, redirect
+        if (userData?.role) {
+          const redirectPath = `/${userData.role}/dashboard`;
+          console.log("Supabase role found, redirecting to:", redirectPath);
+          await router.replace(redirectPath);
+          return;
+        }
+
+        // If both are missing, send to onboarding
+        await router.replace("/onboarding");
       } catch (error) {
         console.error("Redirect error:", error)
         toast({
@@ -57,7 +64,7 @@ export default function RedirectPage() {
     }
 
     handleRedirect()
-  }, [isLoaded, userDataLoaded, isSignedIn, loading, userData, router, toast])
+  }, [isLoaded, user, isSignedIn, userDataLoaded, loading, userData, router, toast])
 
   return (
     <div className="flex min-h-screen items-center justify-center">
