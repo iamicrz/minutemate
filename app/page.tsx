@@ -63,10 +63,10 @@ export default function HomePage() {
       </header>
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="w-full py-8 md:py-16 mt-0">
+        <section className="w-full py-4 md:py-8 mt-0 mb-32">
           <div className="container px-4 md:px-6">
             <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-6 items-center space-y-0">
-              <div className="flex flex-col justify-center space-y-0 max-w-2xl w-full">
+              <div className="flex flex-col justify-center max-w-2xl w-full space-y-8">
                 <div className="space-y-2">
                   <Badge className="inline-flex mt-0 mb-0" variant="outline">
                     Book the expertise you need
@@ -85,7 +85,7 @@ export default function HomePage() {
                     Pay only for the time you need.
                   </p>
                 </div>
-                <CTAButtons className="mt-32 flex flex-wrap gap-6 text-lg [&_button]:h-16 [&_button]:px-10 [&_button]:text-xl" />
+                <CTAButtons className="flex flex-wrap gap-6 text-lg [&_button]:h-16 [&_button]:px-10 [&_button]:text-xl" />
               </div>
               <div className="relative hidden lg:flex items-start justify-center max-w-[800px] w-full -ml-20">
   <LottiePlayerComponent />
