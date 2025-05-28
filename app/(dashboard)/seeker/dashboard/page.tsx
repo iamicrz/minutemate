@@ -32,7 +32,7 @@ interface RecommendedProfessional {
 export default function SeekerDashboard() {
 
   const router = useRouter()
-  const { userData, loading: userLoading } = useUserData()
+  const { userData, loading: userLoading, error: userError } = useUserData()
   const { isLoading: sessionLoading } = useSession()
   const { toast } = useToast()
   const [stats, setStats] = useState<SeekerStats>({
@@ -166,6 +166,14 @@ export default function SeekerDashboard() {
     fetchDashboardData()
   }, [userData?.id, userData?.role, userLoading, sessionLoading, router, fetchDashboardData])
 
+  // Show error if user fetching/creation failed
+  if (userError) {
+    return (
+      <div className="p-8 text-center text-red-500">
+        <strong>Dashboard Error:</strong> {userError}
+      </div>
+    );
+  }
   // Show loading state while any data is loading
   if (userLoading || sessionLoading || statsLoading) {
     return (

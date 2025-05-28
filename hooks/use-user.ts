@@ -10,10 +10,13 @@ import { useToast } from "@/components/ui/use-toast"
 type User = Database["public"]["Tables"]["users"]["Row"]
 
 export function useUserData() {
+  // State for Supabase-specific errors
+  const [supabaseError, setSupabaseError] = useState<string | null>(null);
   const { user: clerkUser, isLoaded, isSignedIn } = useUser()
   const session = useContext(SessionContext)
   const [userData, setUserData] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
 
   const fetchUserData = useCallback(async () => {
@@ -73,6 +76,8 @@ export function useUserData() {
       }
 
       if (error && !existingUser) {
+        setError(error.message || 'Unknown error fetching user from Supabase');
+
         console.error("Debug - Error fetching user:", {
           code: error.code,
           message: error.message,
@@ -106,6 +111,12 @@ export function useUserData() {
               details: createError.details,
               hint: createError.hint
             })
+            setSupabaseError(createError.message || 'Failed to create user in Supabase');
+            toast({
+              title: 'Supabase User Creation Error',
+              description: createError.message || 'Failed to create user in Supabase',
+              variant: 'destructive',
+            });
             throw createError
           }
 
@@ -173,5 +184,5 @@ export function useUserData() {
     fetchUserData()
   }, [fetchUserData])
 
-  return { userData, loading: loading || !isLoaded, isLoaded, isSignedIn }
+  return { userData, loading: loading || !isLoaded, isLoaded, isSignedIn, error }
 }
