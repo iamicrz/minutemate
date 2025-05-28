@@ -62,9 +62,6 @@ export async function POST(req: Request) {
               clerk_id: id,
               email: primaryEmail,
               name,
-              username,
-              first_name,
-              last_name,
               role: role || null,
             }
           ]);
