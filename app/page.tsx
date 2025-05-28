@@ -14,7 +14,7 @@ function LottiePlayerComponent() {
       src="/animations/lp-animation.json"
       autoplay
       loop
-      style={{ height: 680, width: 680 }}
+      style={{ height: 500, width: 800 }}
       mode="normal"
     />
   );
@@ -63,15 +63,15 @@ export default function HomePage() {
       </header>
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="w-full py-6 md:py-10 lg:py-16 xl:py-20">
+        <section className="w-full py-8 md:py-16 mt-0">
           <div className="container px-4 md:px-6">
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-6 items-center">
-              <div className="flex flex-col justify-center space-y-4 max-w-2xl w-full">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-6 items-center space-y-0">
+              <div className="flex flex-col justify-center space-y-0 max-w-2xl w-full">
                 <div className="space-y-2">
-                  <Badge className="inline-flex" variant="outline">
+                  <Badge className="inline-flex mt-0 mb-0" variant="outline">
                     Book the expertise you need
                   </Badge>
-                  <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl">
+                  <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl mt-0 mb-0">
   Find time with real{' '}
   <span className="relative">
     <span className="text-primary">
@@ -85,9 +85,9 @@ export default function HomePage() {
                     Pay only for the time you need.
                   </p>
                 </div>
-                <CTAButtons className="mt-6 flex flex-wrap gap-6 text-lg [&_button]:h-16 [&_button]:px-10 [&_button]:text-xl" />
+                <CTAButtons className="mt-32 flex flex-wrap gap-6 text-lg [&_button]:h-16 [&_button]:px-10 [&_button]:text-xl" />
               </div>
-              <div className="relative hidden lg:flex items-center justify-center max-w-[600px] w-full -ml-20">
+              <div className="relative hidden lg:flex items-start justify-center max-w-[800px] w-full -ml-20">
   <LottiePlayerComponent />
 </div>
             </div>
@@ -109,7 +109,7 @@ export default function HomePage() {
                 </p>
               </div>
             </div>
-            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 py-12 md:grid-cols-2 lg:grid-cols-3">
+            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-16 py-12 md:grid-cols-2 lg:grid-cols-3">
               <Card>
                 <CardHeader className="space-y-1 flex flex-row items-start">
                   <div className="mr-2 rounded-md bg-primary/20 p-1">
