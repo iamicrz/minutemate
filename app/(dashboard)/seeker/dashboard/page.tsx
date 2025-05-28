@@ -42,7 +42,6 @@ export default function SeekerDashboard() {
   })
   const [recommendedProfessionals, setRecommendedProfessionals] = useState<RecommendedProfessional[]>([])
   const [statsLoading, setStatsLoading] = useState(true)
-  const [dashboardError, setDashboardError] = useState<string | null>(null)
 
   const fetchDashboardData = useCallback(async () => {
     if (!userData) return
@@ -138,7 +137,6 @@ export default function SeekerDashboard() {
       console.log("Debug - Dashboard data fetched successfully")
     } catch (error) {
       console.error("Debug - Error fetching dashboard data:", error)
-      setDashboardError("Failed to load dashboard data. Please try refreshing the page.");
       toast({
         title: "Error",
         description: "Failed to load dashboard data. Please try refreshing the page.",
@@ -171,33 +169,17 @@ export default function SeekerDashboard() {
   // Show loading state while any data is loading
   if (userLoading || sessionLoading || statsLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[40vh]">
+      <div>
+        
         <Loading />
-        <div className="mt-4 text-muted-foreground">Loading your dashboard...</div>
       </div>
     )
   }
 
-  // Show error if dashboard data failed to load
-  if (dashboardError) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[40vh]">
-        <div className="text-red-600 font-semibold text-lg mb-2">{dashboardError}</div>
-        <Button onClick={() => window.location.reload()}>Reload Page</Button>
-      </div>
-    )
-  }
-
-  // Show message if user is not a seeker or user data is missing
+  // Show nothing if user is not a seeker
   if (!userData || userData.role !== "seeker") {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[40vh]">
-        <div className="text-yellow-600 font-semibold text-lg mb-2">You must be logged in as a seeker to view this dashboard.</div>
-        <Link href="/">
-          <Button>Go to Home</Button>
-        </Link>
-      </div>
-    )
+    console.log("Debug - User is not a seeker, showing nothing")
+    return null
   }
 
   return (
