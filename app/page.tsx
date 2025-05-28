@@ -14,7 +14,7 @@ function LottiePlayerComponent() {
       src="/animations/lp-animation.json"
       autoplay
       loop
-      style={{ height: 600, width: 600 }}
+      style={{ height: 680, width: 680 }}
       mode="normal"
     />
   );
@@ -87,7 +87,7 @@ export default function HomePage() {
                 </div>
                 <CTAButtons className="mt-6 flex flex-wrap gap-6 text-lg [&_button]:h-16 [&_button]:px-10 [&_button]:text-xl" />
               </div>
-              <div className="relative hidden lg:flex items-center justify-center max-w-[600px] w-full -ml-8">
+              <div className="relative hidden lg:flex items-center justify-center max-w-[600px] w-full -ml-20">
   <LottiePlayerComponent />
 </div>
             </div>
