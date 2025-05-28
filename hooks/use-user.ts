@@ -40,13 +40,39 @@ export function useUserData() {
 
     try {
       console.log("Debug - Fetching user data from Supabase...")
-      const { data: existingUser, error } = await supabase
+      let { data: existingUser, error } = await supabase
         .from("users")
         .select("*")
         .eq("clerk_id", clerkUser.id)
         .single()
 
-      if (error) {
+      // If not found by clerk_id, try by email
+      if (error && error.code === "PGRST116") {
+        console.log("Debug - No user found by clerk_id, trying by email...");
+        const { data: userByEmail, error: emailError } = await supabase
+          .from("users")
+          .select("*")
+          .eq("email", clerkUser.emailAddresses[0]?.emailAddress || "")
+          .single();
+
+        if (!emailError && userByEmail) {
+          // Update user to add clerk_id linkage
+          console.log("Debug - Found user by email, updating clerk_id...");
+          const { data: updatedUser, error: updateError } = await supabase
+            .from("users")
+            .update({ clerk_id: clerkUser.id })
+            .eq("id", userByEmail.id)
+            .select()
+            .single();
+          if (!updateError && updatedUser) {
+            existingUser = updatedUser;
+          } else {
+            existingUser = userByEmail; // fallback
+          }
+        }
+      }
+
+      if (error && !existingUser) {
         console.error("Debug - Error fetching user:", {
           code: error.code,
           message: error.message,
