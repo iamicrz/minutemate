@@ -28,8 +28,15 @@ export default function RedirectPage() {
           return
         }
 
-        // If Clerk's role is present, redirect immediately
-        const clerkRole = user?.publicMetadata?.role;
+        // Force reload Clerk user object to get latest metadata
+        await user?.reload?.();
+
+        // If Clerk's publicMetadata.role is present, redirect immediately
+        let clerkRole = user?.publicMetadata?.role;
+        // Fallback: use unsafeMetadata.role if publicMetadata is not set yet
+        if (!clerkRole && user?.unsafeMetadata?.role) {
+          clerkRole = user.unsafeMetadata.role as string;
+        }
         if (clerkRole) {
           const redirectPath = `/${clerkRole}/dashboard`;
           console.log("Clerk role found, redirecting to:", redirectPath);
