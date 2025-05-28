@@ -8,7 +8,7 @@ import { useToast } from "@/components/ui/use-toast"
 
 export default function RedirectPage() {
   const router = useRouter()
-  const { isSignedIn, isLoaded } = useUser()
+  const { user, isSignedIn, isLoaded } = useUser()
   const { userData, loading, isLoaded: userDataLoaded } = useUserData()
   const { toast } = useToast()
 
@@ -34,20 +34,18 @@ export default function RedirectPage() {
           return
         }
 
-        // If user has no role, redirect to onboarding
-        if (!userData || !userData.role) {
-          console.log("User has no role, redirecting to onboarding")
-          await router.replace("/onboarding")
-          return
+        // Try to get role from userData (Supabase) or Clerk metadata
+        const role = userData?.role || user?.publicMetadata?.role;
+
+        if (!role) {
+          // If role is missing, send to onboarding as a fallback
+          await router.replace("/onboarding");
+          return;
         }
 
-        // If user has a role, redirect to their dashboard
-        console.log("User has role, redirecting to dashboard:", userData.role)
-        const role = userData.role
-        const redirectPath = `/${role}/dashboard`
-
-        console.log("Attempting to redirect to:", redirectPath)
-        await router.replace(redirectPath)
+        const redirectPath = `/${role}/dashboard`;
+        console.log("Attempting to redirect to:", redirectPath);
+        await router.replace(redirectPath);
       } catch (error) {
         console.error("Redirect error:", error)
         toast({
