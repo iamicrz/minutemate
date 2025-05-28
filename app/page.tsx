@@ -47,8 +47,8 @@ export default function HomePage() {
         {/* Hero Section */}
         <section className="w-full py-6 md:py-10 lg:py-16 xl:py-20">
           <div className="container px-4 md:px-6">
-            <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
-              <div className="flex flex-col justify-center space-y-4">
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-12 items-center">
+              <div className="flex flex-col justify-center space-y-4 max-w-2xl w-full">
                 <div className="space-y-2">
                   <Badge className="inline-flex" variant="outline">
                     Book the expertise you need
@@ -75,7 +75,7 @@ export default function HomePage() {
                 </div>
                 <CTAButtons />
               </div>
-              <div className="relative hidden lg:block">
+              <div className="relative hidden lg:flex items-center justify-center max-w-[600px] w-full">
                 <Image
                   src="/placeholder.svg?height=550&width=550"
                   width={550}
