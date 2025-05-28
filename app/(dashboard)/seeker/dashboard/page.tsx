@@ -170,17 +170,35 @@ export default function SeekerDashboard() {
   if (userLoading || sessionLoading || statsLoading) {
     return (
       <div>
-        
         <Loading />
       </div>
     )
   }
 
-  // Show nothing if user is not a seeker
-  if (!userData || userData.role !== "seeker") {
-    console.log("Debug - User is not a seeker, showing nothing")
-    return null
+  // Show error if user is not a seeker
+  if (!userLoading && !sessionLoading && (!userData || userData.role !== "seeker")) {
+    return (
+      <div className="p-8 text-center text-red-500">
+        Error: You must be logged in as a seeker to view this dashboard.
+      </div>
+    );
   }
+
+  // Show empty state if no dashboard data
+  if (!statsLoading && stats.upcomingSessions === 0 && stats.completedSessions === 0 && stats.totalSpent === 0) {
+    return (
+      <div className="p-8 text-center text-gray-500">
+        No dashboard data found. Try booking a session!
+        <pre className="mt-4 bg-gray-100 p-2 text-xs text-left overflow-x-auto">
+          {JSON.stringify({ userData, stats, recommendedProfessionals }, null, 2)}
+        </pre>
+      </div>
+    );
+  }
+
+  // Debug output for development
+  // Remove or comment out before production
+  // <pre>{JSON.stringify({ userData, stats, recommendedProfessionals }, null, 2)}</pre>
 
   return (
     <div className="flex flex-col gap-8">
@@ -194,7 +212,7 @@ export default function SeekerDashboard() {
         </div>
       </nav>
       <div className="flex items-center justify-between">
-        <h1 className="font-semibold text-lg md:text-2xl">Welcome back, {userData.name}</h1>
+        <h1 className="font-semibold text-lg md:text-2xl">Welcome back, {userData?.name ?? "User"}</h1>
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card>
@@ -203,7 +221,7 @@ export default function SeekerDashboard() {
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${userData.balance?.toFixed(2) ?? '0.00'}</div>
+            <div className="text-2xl font-bold">${userData?.balance?.toFixed(2) ?? '0.00'}</div>
             <p className="text-xs text-muted-foreground mt-1">Available to book sessions</p>
           </CardContent>
         </Card>
