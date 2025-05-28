@@ -13,6 +13,8 @@ import { useUser } from "@clerk/nextjs"
 import { SignOutButton } from "@clerk/nextjs"
 import { useUserData } from "@/hooks/use-user"
 import { useRouter } from "next/navigation"
+import SlotMachineText from "@/components/slot-machine-text"
+import React from "react";
 
 export default function HomePage() {
   const { isSignedIn } = useUser()
@@ -52,8 +54,20 @@ export default function HomePage() {
                     Book the expertise you need
                   </Badge>
                   <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl">
-                    Find time with real professionals
-                  </h1>
+  Find time with real{' '}
+  <span className="relative">
+    <span className="text-primary">
+      <React.Suspense fallback={"professionals"}>
+        {typeof window !== 'undefined' ? (
+          <SlotMachineText className="text-primary" />
+        ) : (
+          'professionals'
+        )}
+      </React.Suspense>
+    </span>
+  </span>
+</h1>
+
                   <p className="max-w-[600px] text-muted-foreground md:text-xl">
                     Book short, productive sessions with verified experts in law, design, editing, consulting, and more.
                     Pay only for the time you need.
