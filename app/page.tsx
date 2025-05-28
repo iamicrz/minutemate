@@ -53,7 +53,7 @@ export default function HomePage() {
                   <Badge className="inline-flex" variant="outline">
                     Book the expertise you need
                   </Badge>
-                  <h1 className="text-5xl font-extrabold tracking-tighter sm:text-7xl xl:text-8xl">
+                  <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl">
   Find time with real{' '}
   <span className="relative">
     <span className="text-primary">
@@ -62,7 +62,7 @@ export default function HomePage() {
   </span>
 </h1>
 
-                  <p className="max-w-[600px] text-muted-foreground text-2xl md:text-3xl font-medium">
+                  <p className="max-w-[600px] text-muted-foreground md:text-xl">
                     Book short, productive sessions with verified experts in law, design, editing, consulting, and more.
                     Pay only for the time you need.
                   </p>
