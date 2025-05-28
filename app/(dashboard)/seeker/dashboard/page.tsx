@@ -169,40 +169,51 @@ export default function SeekerDashboard() {
   // Show loading state while any data is loading
   if (userLoading || sessionLoading || statsLoading) {
     return (
-      <div>
+      <>
+        <div style={{ background: '#fffbe6', color: '#ad6700', padding: 8, fontSize: 12, fontFamily: 'monospace', whiteSpace: 'pre', borderBottom: '1px solid #ffe58f' }}>
+          <strong>DEBUG:</strong> {JSON.stringify({ userLoading, sessionLoading, statsLoading, userData, stats, recommendedProfessionals }, null, 2)}
+        </div>
         <Loading />
-      </div>
-    )
+      </>
+    );
   }
 
   // Show error if user is not a seeker
   if (!userLoading && !sessionLoading && (!userData || userData.role !== "seeker")) {
     return (
-      <div className="p-8 text-center text-red-500">
-        Error: You must be logged in as a seeker to view this dashboard.
-      </div>
+      <>
+        <div style={{ background: '#fffbe6', color: '#ad6700', padding: 8, fontSize: 12, fontFamily: 'monospace', whiteSpace: 'pre', borderBottom: '1px solid #ffe58f' }}>
+          <strong>DEBUG:</strong> {JSON.stringify({ userLoading, sessionLoading, statsLoading, userData, stats, recommendedProfessionals }, null, 2)}
+        </div>
+        <div className="p-8 text-center text-red-500">
+          Error: You must be logged in as a seeker to view this dashboard.
+        </div>
+      </>
     );
   }
 
   // Show empty state if no dashboard data
   if (!statsLoading && stats.upcomingSessions === 0 && stats.completedSessions === 0 && stats.totalSpent === 0) {
     return (
-      <div className="p-8 text-center text-gray-500">
-        No dashboard data found. Try booking a session!
-        <pre className="mt-4 bg-gray-100 p-2 text-xs text-left overflow-x-auto">
-          {JSON.stringify({ userData, stats, recommendedProfessionals }, null, 2)}
-        </pre>
-      </div>
+      <>
+        <div style={{ background: '#fffbe6', color: '#ad6700', padding: 8, fontSize: 12, fontFamily: 'monospace', whiteSpace: 'pre', borderBottom: '1px solid #ffe58f' }}>
+          <strong>DEBUG:</strong> {JSON.stringify({ userLoading, sessionLoading, statsLoading, userData, stats, recommendedProfessionals }, null, 2)}
+        </div>
+        <div className="p-8 text-center text-gray-500">
+          No dashboard data found. Try booking a session!
+          <pre className="mt-4 bg-gray-100 p-2 text-xs text-left overflow-x-auto">
+            {JSON.stringify({ userData, stats, recommendedProfessionals }, null, 2)}
+          </pre>
+        </div>
+      </>
     );
   }
 
-  // Debug output for development
-  // Remove or comment out before production
-  // <pre>{JSON.stringify({ userData, stats, recommendedProfessionals }, null, 2)}</pre>
-
   return (
-    <div className="flex flex-col gap-8">
-      {/* Navbar */}
+    <>
+      <div style={{ background: '#fffbe6', color: '#ad6700', padding: 8, fontSize: 12, fontFamily: 'monospace', whiteSpace: 'pre', borderBottom: '1px solid #ffe58f' }}>
+        <strong>DEBUG:</strong> {JSON.stringify({ userLoading, sessionLoading, statsLoading, userData, stats, recommendedProfessionals }, null, 2)}
+      </div>
       <nav className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200 mb-4">
         <div className="text-xl font-bold text-primary">MinuteMate</div>
         <div>
@@ -259,9 +270,7 @@ export default function SeekerDashboard() {
           </CardHeader>
           <CardContent className="flex-1 flex items-end">
             <Link href="/seeker/professionals" className="w-full">
-              <Button variant="default" className="w-full">
-                Find Now
-              </Button>
+              <Button variant="default" className="w-full">Find Now</Button>
             </Link>
           </CardContent>
         </Card>
@@ -275,9 +284,7 @@ export default function SeekerDashboard() {
           </CardHeader>
           <CardContent className="flex-1 flex items-end">
             <Link href="/seeker/bookings" className="w-full">
-              <Button variant="outline" className="w-full">
-                View Bookings
-              </Button>
+              <Button variant="outline" className="w-full">View Bookings</Button>
             </Link>
           </CardContent>
         </Card>
@@ -291,9 +298,7 @@ export default function SeekerDashboard() {
           </CardHeader>
           <CardContent className="flex-1 flex items-end">
             <Link href="/seeker/bookings?tab=past" className="w-full">
-              <Button variant="outline" className="w-full">
-                Rate Sessions
-              </Button>
+              <Button variant="outline" className="w-full">Rate Sessions</Button>
             </Link>
           </CardContent>
         </Card>
@@ -305,24 +310,23 @@ export default function SeekerDashboard() {
           <Card key={professional.id} className="flex flex-col">
             <CardHeader>
               <CardTitle className="text-base">{professional.name}</CardTitle>
-              <CardDescription>{professional.title}</CardDescription>
+              <CardDescription>{professional.title} &mdash; {professional.category}</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col justify-between">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Star className="h-4 w-4 fill-primary text-primary" />
-                <span>{professional.average_rating.toFixed(1)} ({professional.total_reviews} reviews)</span>
+              <div>
+                <span className="font-semibold">${professional.rate_per_15min}/15min</span>
               </div>
-              <div className="mt-4">
-                <Link href={`/seeker/professionals/${professional.id}`} className="w-full">
-                  <Button variant="outline" className="w-full">
-                    View Profile
-                  </Button>
-                </Link>
+              <div className="flex items-center gap-2 mt-2">
+                <Star className="h-4 w-4 text-yellow-500" />
+                <span>{professional.average_rating.toFixed(1)}</span>
+                <span className="text-xs text-muted-foreground">({professional.total_reviews} reviews)</span>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
-    </div>
+    </>
   );
 }
+
+
