@@ -11,6 +11,7 @@ import Link from "next/link"
 import Loading from "./loading"
 import { useSession } from "@/components/session-provider"
 import { useToast } from "@/components/ui/use-toast"
+import { SignOutButton } from "@clerk/nextjs"
 
 interface SeekerStats {
   upcomingSessions: number
@@ -29,6 +30,7 @@ interface RecommendedProfessional {
 }
 
 export default function SeekerDashboard() {
+
   const router = useRouter()
   const { userData, loading: userLoading } = useUserData()
   const { isLoading: sessionLoading } = useSession()
@@ -166,8 +168,12 @@ export default function SeekerDashboard() {
 
   // Show loading state while any data is loading
   if (userLoading || sessionLoading || statsLoading) {
-    console.log("Debug - Showing loading state", { userLoading, sessionLoading, statsLoading })
-    return <Loading />
+    return (
+      <div>
+        
+        <Loading />
+      </div>
+    )
   }
 
   // Show nothing if user is not a seeker
@@ -178,10 +184,18 @@ export default function SeekerDashboard() {
 
   return (
     <div className="flex flex-col gap-8">
+      {/* Navbar */}
+      <nav className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200 mb-4">
+        <div className="text-xl font-bold text-primary">MinuteMate</div>
+        <div>
+          <SignOutButton>
+            <Button variant="outline">Sign Out</Button>
+          </SignOutButton>
+        </div>
+      </nav>
       <div className="flex items-center justify-between">
         <h1 className="font-semibold text-lg md:text-2xl">Welcome back, {userData.name}</h1>
       </div>
-
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
@@ -189,7 +203,7 @@ export default function SeekerDashboard() {
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${userData.balance.toFixed(2)}</div>
+            <div className="text-2xl font-bold">${userData.balance?.toFixed(2) ?? '0.00'}</div>
             <p className="text-xs text-muted-foreground mt-1">Available to book sessions</p>
           </CardContent>
         </Card>
@@ -269,7 +283,7 @@ export default function SeekerDashboard() {
 
       <h2 className="font-semibold text-lg">Recommended Professionals</h2>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {recommendedProfessionals.map((professional) => (
+        {recommendedProfessionals.map((professional: RecommendedProfessional) => (
           <Card key={professional.id} className="flex flex-col">
             <CardHeader>
               <CardTitle className="text-base">{professional.name}</CardTitle>
@@ -292,5 +306,5 @@ export default function SeekerDashboard() {
         ))}
       </div>
     </div>
-  )
+  );
 }
