@@ -35,9 +35,11 @@ export async function POST(req: Request) {
     console.log('Webhook received:', payload);
     
     if (payload.type === "user.created") {
-      const { id, email_addresses, unsafe_metadata } = payload.data;
+      const { id, email_addresses, unsafe_metadata, first_name, last_name, username } = payload.data;
       const role = unsafe_metadata?.role as "seeker" | "provider" | "admin" | undefined;
       const primaryEmail = email_addresses?.[0]?.email_address;
+      // Build the name field to always be non-null
+      const name = ((first_name || "") + " " + (last_name || "")).trim() || username || primaryEmail || "User";
 
       // Check if user already exists
       const { data: existingUser, error: fetchError } = await supabase
@@ -59,6 +61,10 @@ export async function POST(req: Request) {
             {
               clerk_id: id,
               email: primaryEmail,
+              name,
+              username,
+              first_name,
+              last_name,
               role: role || null,
             }
           ]);
