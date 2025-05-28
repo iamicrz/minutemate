@@ -14,7 +14,7 @@ function LottiePlayerComponent() {
       src="/animations/lp-animation.json"
       autoplay
       loop
-      style={{ height: 550, width: 550, background: '#ededed', borderRadius: '0.5rem', border: '1px solid #e5e7eb', boxShadow: '0 4px 24px rgba(0,0,0,0.07)' }}
+      style={{ height: 550, width: 550 }}
       mode="normal"
     />
   );
