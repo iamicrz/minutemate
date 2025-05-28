@@ -32,7 +32,7 @@ import { SignOutButton } from "@clerk/nextjs"
 import { useUserData } from "@/hooks/use-user"
 import { useRouter } from "next/navigation"
 import SlotMachineText from "@/components/slot-machine-text"
-import React from "react";
+
 
 export default function HomePage() {
   const { isSignedIn } = useUser()
