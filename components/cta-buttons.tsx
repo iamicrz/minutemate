@@ -4,9 +4,9 @@ import Link from "next/link"
 import { SignUpButton } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
 
-export function CTAButtons() {
+export function CTAButtons({ className = "" }: { className?: string }) {
   return (
-    <div className="flex flex-col gap-2 min-[400px]:flex-row">
+    <div className={`flex flex-col gap-2 min-[400px]:flex-row ${className}`}>
       <SignUpButton mode="modal">
         <Button size="lg" className="w-full min-[400px]:w-auto">
           Find an Expert

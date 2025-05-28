@@ -32,8 +32,8 @@ export default function SlotMachineText({ className }: SlotMachineTextProps) {
       setTimeout(() => {
         setIndex((prev) => (prev + 1) % WORDS.length)
         setAnimating(false)
-      }, 500) // Animation duration
-    }, 2100)
+      }, 350) // Animation duration (faster)
+    }, 900) // Faster interval
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
     }
@@ -51,7 +51,7 @@ export default function SlotMachineText({ className }: SlotMachineTextProps) {
     >
       <span
         className={`block transition-transform duration-500 ease-in-out will-change-transform ${
-          animating ? "translate-y-[-100%] opacity-0" : "translate-y-0 opacity-100"
+          animating ? "translate-y-[100%] opacity-0" : "translate-y-0 opacity-100"
         }`}
         style={{ position: "absolute", left: 0, width: "100%", whiteSpace: 'nowrap' }}
         key={index}
@@ -60,7 +60,7 @@ export default function SlotMachineText({ className }: SlotMachineTextProps) {
       </span>
       <span
         className={`block transition-transform duration-500 ease-in-out will-change-transform ${
-          animating ? "translate-y-0 opacity-100" : "translate-y-[100%] opacity-0"
+          animating ? "translate-y-0 opacity-100" : "translate-y-[-100%] opacity-0"
         }`}
         style={{ position: "absolute", left: 0, width: "100%", whiteSpace: 'nowrap' }}
         key={index + 1}

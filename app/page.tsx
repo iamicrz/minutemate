@@ -47,33 +47,27 @@ export default function HomePage() {
         {/* Hero Section */}
         <section className="w-full py-6 md:py-10 lg:py-16 xl:py-20">
           <div className="container px-4 md:px-6">
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-12 items-center">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-6 items-center">
               <div className="flex flex-col justify-center space-y-4 max-w-2xl w-full">
                 <div className="space-y-2">
                   <Badge className="inline-flex" variant="outline">
                     Book the expertise you need
                   </Badge>
-                  <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl">
+                  <h1 className="text-5xl font-extrabold tracking-tighter sm:text-7xl xl:text-8xl">
   Find time with real{' '}
   <span className="relative">
     <span className="text-primary">
-      <React.Suspense fallback={"professionals"}>
-        {typeof window !== 'undefined' ? (
-          <SlotMachineText className="text-primary" />
-        ) : (
-          'professionals'
-        )}
-      </React.Suspense>
+      <SlotMachineText className="text-primary" />
     </span>
   </span>
 </h1>
 
-                  <p className="max-w-[600px] text-muted-foreground md:text-xl">
+                  <p className="max-w-[600px] text-muted-foreground text-2xl md:text-3xl font-medium">
                     Book short, productive sessions with verified experts in law, design, editing, consulting, and more.
                     Pay only for the time you need.
                   </p>
                 </div>
-                <CTAButtons />
+                <CTAButtons className="mt-6 flex flex-wrap gap-6 text-lg [&_button]:h-16 [&_button]:px-10 [&_button]:text-xl" />
               </div>
               <div className="relative hidden lg:flex items-center justify-center max-w-[600px] w-full">
                 <Image
