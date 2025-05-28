@@ -71,6 +71,15 @@ export async function POST(req: Request) {
           return new Response("Error creating user", { status: 500 });
         }
         console.log('User created successfully in Supabase!');
+        // Update Clerk publicMetadata with role
+        try {
+          const { users } = await import('@clerk/clerk-sdk-node');
+          await users.updateUser(id, { publicMetadata: { role } });
+          console.log('Clerk publicMetadata updated with role:', role);
+        } catch (err) {
+          console.error('Failed to update Clerk publicMetadata:', err);
+          return new Response("Error updating Clerk publicMetadata", { status: 500 });
+        }
       } else {
         // Update existing user
         const { error: updateError } = await supabase
@@ -82,6 +91,15 @@ export async function POST(req: Request) {
           return new Response("Error updating user", { status: 500 });
         }
         console.log('User updated successfully in Supabase!');
+        // Update Clerk publicMetadata with role
+        try {
+          const { users } = await import('@clerk/clerk-sdk-node');
+          await users.updateUser(id, { publicMetadata: { role } });
+          console.log('Clerk publicMetadata updated with role:', role);
+        } catch (err) {
+          console.error('Failed to update Clerk publicMetadata:', err);
+          return new Response("Error updating Clerk publicMetadata", { status: 500 });
+        }
       }
     } else if (payload.type === "user.updated") {
       const { id, public_metadata } = payload.data;
