@@ -1,7 +1,25 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
+import React, { useEffect } from 'react';
+
+// Register the lottie-player web component on the client
+function LottiePlayerComponent() {
+  useEffect(() => {
+    import('@lottiefiles/lottie-player');
+  }, []);
+
+  return (
+    <lottie-player
+      src="/animations/lp-animation.lottie"
+      autoplay
+      loop
+      style={{ height: 550, width: 550, background: '#ededed', borderRadius: '0.5rem', border: '1px solid #e5e7eb', boxShadow: '0 4px 24px rgba(0,0,0,0.07)' }}
+      mode="normal"
+    />
+  );
+}
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -70,14 +88,8 @@ export default function HomePage() {
                 <CTAButtons className="mt-6 flex flex-wrap gap-6 text-lg [&_button]:h-16 [&_button]:px-10 [&_button]:text-xl" />
               </div>
               <div className="relative hidden lg:flex items-center justify-center max-w-[600px] w-full">
-                <Image
-                  src="/placeholder.svg?height=550&width=550"
-                  width={550}
-                  height={550}
-                  alt="Screenshot of MinuteMate"
-                  className="relative rounded-lg border shadow-lg"
-                />
-              </div>
+  <LottiePlayerComponent />
+</div>
             </div>
           </div>
         </section>
