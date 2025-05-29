@@ -43,6 +43,9 @@ export function useUserData() {
 
     try {
       console.log("Debug - Fetching user data from Supabase...")
+      if (clerkUser && clerkUser.id) {
+        console.log("Debug - Fetching user by clerk_id:", clerkUser.id)
+      }
       let { data: existingUser, error } = await supabase
         .from("users")
         .select("*")
@@ -52,10 +55,14 @@ export function useUserData() {
       // If not found by clerk_id, try by email
       if (error && error.code === "PGRST116") {
         console.log("Debug - No user found by clerk_id, trying by email...");
+        const emailToFetch = clerkUser.emailAddresses && clerkUser.emailAddresses[0]?.emailAddress ? clerkUser.emailAddresses[0].emailAddress : ""
+        if (emailToFetch) {
+          console.log("Debug - Fetching user by email:", emailToFetch)
+        }
         const { data: userByEmail, error: emailError } = await supabase
           .from("users")
           .select("*")
-          .eq("email", clerkUser.emailAddresses[0]?.emailAddress || "")
+          .eq("email", emailToFetch)
           .single();
 
         if (!emailError && userByEmail) {
@@ -77,13 +84,13 @@ export function useUserData() {
 
       if (error && !existingUser) {
         setError(error.message || 'Unknown error fetching user from Supabase');
-
-        console.error("Debug - Error fetching user:", {
+        console.error("Debug - Error fetching user (full error object):", error);
+        console.error("Debug - Error fetching user (details):", {
           code: error.code,
           message: error.message,
           details: error.details,
           hint: error.hint
-        })
+        });
 
         if (error.code === "PGRST116") {
           console.log("Debug - User doesn't exist in Supabase, creating new user...")
@@ -92,8 +99,7 @@ export function useUserData() {
             email: clerkUser.emailAddresses[0]?.emailAddress || "",
             name: clerkUser.fullName || clerkUser.firstName || "User",
             role: "seeker",
-            balance: 0,
-            is_active: true,
+            balance: 0
           }
 
           console.log("Debug - Attempting to create new user:", newUser)
