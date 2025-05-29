@@ -187,8 +187,10 @@ export function useUserData() {
   }, [clerkUser, isLoaded, isSignedIn, session, toast])
 
   useEffect(() => {
-    fetchUserData()
-  }, [fetchUserData])
+    if (isLoaded && isSignedIn && clerkUser?.id) {
+      fetchUserData();
+    }
+  }, [isLoaded, isSignedIn, clerkUser?.id, fetchUserData]);
 
   return { userData, loading: loading || !isLoaded, isLoaded, isSignedIn, error }
 }
