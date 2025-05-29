@@ -36,7 +36,7 @@ import SlotMachineText from "@/components/slot-machine-text"
 
 export default function HomePage() {
   const { isSignedIn } = useUser()
-  const { loading } = useUserData()
+  const { loading, userData, stats, recommendedProfessionals } = useUserData()
 
   // If we're loading or checking auth, show nothing
   if (loading) {
@@ -93,6 +93,45 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        {/* User Dashboard Preview Section */}
+        {isSignedIn && userData && (
+          <section className="w-full py-8">
+            <div className="container px-4 md:px-6">
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold mb-2">Welcome, {userData.name}!</h2>
+                <p className="text-muted-foreground mb-1">Email: {userData.email}</p>
+                <p className="text-muted-foreground mb-1">Role: {userData.role}</p>
+                <p className="text-muted-foreground mb-1">Balance: ${userData.balance?.toFixed(2)}</p>
+              </div>
+              {stats && (
+                <div className="mb-8">
+                  <h3 className="text-xl font-semibold mb-2">Your Stats</h3>
+                  <ul className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <li className="bg-muted rounded p-4">Upcoming Sessions: {stats.upcomingSessions}</li>
+                    <li className="bg-muted rounded p-4">Completed Sessions: {stats.completedSessions}</li>
+                    <li className="bg-muted rounded p-4">Total Spent: ${stats.totalSpent}</li>
+                  </ul>
+                </div>
+              )}
+              {recommendedProfessionals && recommendedProfessionals.length > 0 && (
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Recommended Professionals</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {recommendedProfessionals.map((pro: any) => (
+                      <div key={pro.id} className="bg-background border rounded-lg p-4">
+                        <h4 className="font-bold text-lg mb-1">{pro.name}</h4>
+                        <p className="text-muted-foreground mb-1">{pro.title} ({pro.category})</p>
+                        <p className="text-muted-foreground mb-1">Rate: ${pro.rate_per_15min}/15min</p>
+                        <p className="text-muted-foreground mb-1">Rating: {pro.average_rating} ({pro.total_reviews} reviews)</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* Feature Section */}
         <section className="w-full py-12 md:py-24 lg:py-32 bg-muted">

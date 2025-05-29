@@ -10,6 +10,42 @@ import { useToast } from "@/components/ui/use-toast"
 type User = Database["public"]["Tables"]["users"]["Row"]
 
 export function useUserData() {
+  // --- Added for landing page preview ---
+  const [stats, setStats] = useState({
+    upcomingSessions: 0,
+    completedSessions: 0,
+    totalSpent: 0,
+  });
+  const [recommendedProfessionals, setRecommendedProfessionals] = useState([
+    {
+      id: "650e8400-e29b-41d4-a716-446655440002",
+      name: "Provider 2",
+      title: "UX/UI Designer",
+      category: "Design",
+      rate_per_15min: 60,
+      average_rating: 4.9,
+      total_reviews: 38,
+    },
+    {
+      id: "650e8400-e29b-41d4-a716-446655440001",
+      name: "Provider 1",
+      title: "Legal Consultant",
+      category: "Legal",
+      rate_per_15min: 75,
+      average_rating: 4.8,
+      total_reviews: 47,
+    },
+    {
+      id: "650e8400-e29b-41d4-a716-446655440003",
+      name: "Provider 3",
+      title: "Career Coach",
+      category: "Coaching",
+      rate_per_15min: 50,
+      average_rating: 4.7,
+      total_reviews: 29,
+    },
+  ]);
+  // --- END ---
   // State for Supabase-specific errors
   const [supabaseError, setSupabaseError] = useState<string | null>(null);
   const { user: clerkUser, isLoaded, isSignedIn } = useUser()
@@ -192,5 +228,5 @@ export function useUserData() {
     }
   }, [isLoaded, isSignedIn, clerkUser?.id, fetchUserData]);
 
-  return { userData, loading: loading || !isLoaded, isLoaded, isSignedIn, error }
+  return { userData, loading: loading || !isLoaded, isLoaded, isSignedIn, error, stats, recommendedProfessionals }
 }
