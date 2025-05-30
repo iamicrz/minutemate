@@ -1,11 +1,13 @@
 "use client"
 
-import type React from "react"
+import React, { useState, useEffect } from "react"
 import { DashboardNav } from "@/components/dashboard-nav"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CalendarCheck, DollarSign, LayoutGrid, ListChecks, ShieldCheck } from "lucide-react"
+import { useUser } from "@clerk/nextjs"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 
-const navItems = [
+const navItemsAll = [
   {
     title: "Dashboard",
     href: "/provider/dashboard",
@@ -31,17 +33,39 @@ const navItems = [
     href: "/provider/verification",
     icon: ShieldCheck,
   },
-]
+];
 
-export default function ProviderLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function ProviderLayout({ children }: { children: React.ReactNode }) {
+  const { user } = useUser();
+  const [isVerified, setIsVerified] = useState<boolean | null>(null);
+  const supabase = createClientComponentClient();
+
+  useEffect(() => {
+    const fetchVerification = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('professional_profiles')
+        .select('is_verified')
+        .eq('user_id', user.id)
+        .single();
+      setIsVerified(data?.is_verified ?? false);
+    };
+    fetchVerification();
+  }, [user]);
+
+  // Only show Verification tab if not verified; otherwise show all
+  const navItems = isVerified === false
+    ? navItemsAll.filter((item) => item.title === "Verification")
+    : navItemsAll;
+
   return (
     <div className="container grid flex-1 gap-12 md:grid-cols-[200px_1fr] lg:grid-cols-[240px_1fr] p-0">
       <aside className="hidden border-r md:block">
-        <DashboardNav items={navItems} />
+        {isVerified === null ? (
+          <div className="p-4 text-center text-muted-foreground">Loading...</div>
+        ) : (
+          <DashboardNav items={navItems} />
+        )}
       </aside>
       <main className="flex flex-col flex-1 p-4 md:gap-8 md:p-6">
         <div className="md:hidden">
