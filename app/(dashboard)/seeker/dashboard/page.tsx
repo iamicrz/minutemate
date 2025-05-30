@@ -44,7 +44,7 @@ export default function SeekerDashboard() {
   const [statsLoading, setStatsLoading] = useState(true)
 
   const fetchDashboardData = useCallback(async () => {
-    if (!userData) return
+    if (!userData || statsLoading) return
 
     try {
       console.log("Debug - Fetching dashboard data for user:", userData.id)
@@ -162,9 +162,17 @@ export default function SeekerDashboard() {
       }
       return
     }
-
-    fetchDashboardData()
-  }, [userData?.id, userData?.role, userLoading, sessionLoading, router, fetchDashboardData])
+    
+    // Only fetch dashboard data if we haven't fetched it yet or if user data has changed
+    if (!statsLoading && (stats.upcomingSessions === 0 && stats.completedSessions === 0)) {
+      // Add a small delay to prevent immediate API calls
+      const timer = setTimeout(() => {
+        fetchDashboardData()
+      }, 500)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [userData?.id, userData?.role, userLoading, sessionLoading, router, fetchDashboardData, statsLoading, stats])
 
   // Show error if user fetching/creation failed
   if (userError) {

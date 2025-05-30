@@ -55,7 +55,16 @@ export function useUserData() {
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
 
+  // Track if a fetch is in progress to prevent duplicate calls
+  const [isFetching, setIsFetching] = useState(false)
+  
   const fetchUserData = useCallback(async () => {
+    // Skip if already fetching or if we already have user data
+    if (isFetching || (userData && userData.id)) {
+      return
+    }
+    
+    setIsFetching(true)
     console.log("Debug - Starting fetchUserData:", {
       isLoaded,
       isSignedIn,
@@ -66,6 +75,7 @@ export function useUserData() {
     if (!isLoaded) {
       console.log("Debug - Clerk not loaded yet")
       setLoading(true)
+      setIsFetching(false)
       return
     }
 
@@ -74,6 +84,7 @@ export function useUserData() {
       console.log("Debug - User not signed in or no Clerk ID")
       setUserData(null)
       setLoading(false)
+      setIsFetching(false)
       return
     }
 
@@ -188,6 +199,7 @@ export function useUserData() {
           })
           setUserData(null)
           session?.setUser(null)
+          setIsFetching(false)
           return
         }
 
@@ -203,30 +215,26 @@ export function useUserData() {
           is_active: existingUser.is_active,
         })
       }
-    } catch (err: any) {
-      console.error("Debug - Error in fetchUserData:", {
-        name: err.name,
-        message: err.message,
-        code: err.code,
-        details: err.details,
-        hint: err.hint,
-        stack: err.stack
-      })
-      toast({
-        title: "Error",
-        description: "Failed to load user data. Please refresh the page.",
-        variant: "destructive",
-      })
-    } finally {
+    } catch (error: any) {
+      console.error("Debug - Error in fetchUserData:", error)
+      setError(error.message || "Failed to fetch user data")
       setLoading(false)
+    } finally {
+      setIsFetching(false)
     }
   }, [clerkUser, isLoaded, isSignedIn, session, toast])
 
   useEffect(() => {
-    if (isLoaded && isSignedIn && clerkUser?.id) {
-      fetchUserData();
+    // Only fetch if we don't have user data yet and clerk is loaded
+    if (!userData && isLoaded) {
+      // Add a small delay to prevent rapid consecutive calls
+      const timer = setTimeout(() => {
+        fetchUserData()
+      }, 300)
+      
+      return () => clearTimeout(timer)
     }
-  }, [isLoaded, isSignedIn, clerkUser?.id, fetchUserData]);
+  }, [fetchUserData, isLoaded, isSignedIn, clerkUser?.id, userData])
 
   return { userData, loading: loading || !isLoaded, isLoaded, isSignedIn, error, stats, recommendedProfessionals }
 }
