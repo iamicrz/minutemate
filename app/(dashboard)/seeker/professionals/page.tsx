@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { useUserData } from "@/hooks/use-user"
+import { useUser } from "@clerk/nextjs"
 import { supabase } from "@/lib/supabase"
 import { Search, Star, Clock, Filter } from "lucide-react"
 import Link from "next/link"
@@ -30,7 +31,8 @@ interface Professional {
 
 export default function ProfessionalsPage() {
   const router = useRouter()
-  const { userData } = useUserData()
+  const { userData, loading: userLoading } = useUserData()
+  const { isSignedIn } = useUser()
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [loading, setLoading] = useState(true)
   const [priceRange, setPriceRange] = useState([200])
@@ -39,12 +41,12 @@ export default function ProfessionalsPage() {
   const [ratingFilter, setRatingFilter] = useState("all")
 
   useEffect(() => {
-    if (!userData) {
+    if (!isSignedIn || (!userData && !userLoading)) {
       router.push("/auth/login")
       return
     }
-    fetchProfessionals()
-  }, [userData, router])
+    if (userData) fetchProfessionals()
+  }, [userData, userLoading, isSignedIn, router])
 
   const fetchProfessionals = async () => {
     try {

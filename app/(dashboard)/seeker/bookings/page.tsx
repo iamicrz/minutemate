@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useUserData } from "@/hooks/use-user"
+import { useUser } from "@clerk/nextjs"
 import { supabase } from "@/lib/supabase"
 import {
   Dialog,
@@ -39,7 +40,8 @@ export default function BookingsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
-  const { userData } = useUserData()
+  const { userData, loading: userLoading } = useUserData()
+  const { isSignedIn } = useUser()
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([])
   const [pastBookings, setPastBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
@@ -52,12 +54,12 @@ export default function BookingsPage() {
   const activeTab = searchParams.get("tab") || "upcoming"
 
   useEffect(() => {
-    if (!userData) {
+    if (!isSignedIn || (!userData && !userLoading)) {
       router.push("/auth/login")
       return
     }
-    fetchBookings()
-  }, [userData, router])
+    if (userData) fetchBookings()
+  }, [userData, userLoading, isSignedIn, router])
 
   const fetchBookings = async () => {
     if (!userData) return

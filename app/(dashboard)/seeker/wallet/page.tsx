@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/components/ui/use-toast"
 import { useUserData } from "@/hooks/use-user"
+import { useUser } from "@clerk/nextjs"
 import { supabase } from "@/lib/supabase"
 import { CreditCard, DollarSign, Download, Plus, ShoppingCart, Wallet, Clock } from "lucide-react"
 
@@ -25,7 +26,8 @@ interface Transaction {
 export default function WalletPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const { userData, refetch } = useUserData()
+  const { userData, loading: userLoading } = useUserData()
+  const { isSignedIn } = useUser()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [pendingTransactions, setPendingTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
@@ -34,12 +36,12 @@ export default function WalletPage() {
   const [paymentMethod, setPaymentMethod] = useState("credit-card")
 
   useEffect(() => {
-    if (!userData) {
+    if (!isSignedIn || (!userData && !userLoading)) {
       router.push("/auth/login")
       return
     }
-    fetchTransactions()
-  }, [userData, router])
+    if (userData) fetchTransactions()
+  }, [userData, userLoading, isSignedIn, router])
 
   const fetchTransactions = async () => {
     if (!userData) return
@@ -131,7 +133,6 @@ export default function WalletPage() {
       })
 
       setAmount("")
-      await refetch() // Refresh user data to update balance
       await fetchTransactions() // Refresh transaction history
     } catch (error) {
       console.error("Error adding funds:", error)
