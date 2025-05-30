@@ -35,9 +35,12 @@ export default function RedirectPage() {
         const role = user?.publicMetadata?.role as string | undefined
         
         if (role) {
+          // Force a direct navigation to the dashboard
           setMessage(`Redirecting to ${role} dashboard...`)
           setRedirectAttempted(true)
-          router.replace(`/${role}/dashboard`)
+          
+          // Use window.location for a full page refresh to avoid client-side routing issues
+          window.location.href = `/${role}/dashboard`
           return
         }
         
@@ -65,7 +68,11 @@ export default function RedirectPage() {
           <p className="text-sm text-muted-foreground">
             If you are not redirected automatically, please
             <button 
-              onClick={() => setRedirectAttempted(false)}
+              onClick={() => {
+                setRedirectAttempted(false)
+                // Force page reload to clear any cached state
+                window.location.reload()
+              }}
               className="ml-1 text-primary underline"
             >
               try again
