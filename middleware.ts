@@ -39,41 +39,36 @@ const isAdminRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
-  // Allow public routes without authentication
-  if (isPublicRoute(req)) {
+  // Allow public routes and auth redirect without authentication
+  if (isPublicRoute(req) || req.nextUrl.pathname.startsWith('/auth/redirect')) {
     return;
   }
 
   // Get authentication state
   const { userId, sessionClaims } = await auth();
   
-  // If not authenticated, return 401
+  // If not authenticated, redirect to login
   if (!userId) {
-    return new Response("Unauthorized", { status: 401 });
+    return Response.redirect(new URL('/auth/login', req.url));
   }
 
   // Get user role from public metadata in session claims
   const publicMetadata = sessionClaims?.publicMetadata as CustomPublicMetadata || {};
   const userRole = publicMetadata.role;
-
-  // Special case for auth redirect - always allow
-  if (req.nextUrl.pathname.startsWith('/auth/redirect')) {
+  
+  // If no role is set yet, allow access to onboarding
+  if (!userRole && req.nextUrl.pathname === '/onboarding') {
     return;
   }
-
-  // Role-based access control
-  if (isSeekerRoute(req) && userRole !== 'seeker') {
-    // If trying to access seeker routes but not a seeker, redirect to auth redirect
-    return Response.redirect(new URL('/auth/redirect', req.url));
-  }
-
-  if (isProviderRoute(req) && userRole !== 'provider') {
-    // If trying to access provider routes but not a provider, redirect to auth redirect
-    return Response.redirect(new URL('/auth/redirect', req.url));
-  }
-
-  if (isAdminRoute(req) && userRole !== 'admin') {
-    // If trying to access admin routes but not an admin, redirect to auth redirect
+  
+  // Simple role-based access control
+  const isAccessAllowed = 
+    (isSeekerRoute(req) && userRole === 'seeker') ||
+    (isProviderRoute(req) && userRole === 'provider') ||
+    (isAdminRoute(req) && userRole === 'admin');
+  
+  // If access is not allowed, redirect to auth redirect
+  if (!isAccessAllowed) {
     return Response.redirect(new URL('/auth/redirect', req.url));
   }
 });

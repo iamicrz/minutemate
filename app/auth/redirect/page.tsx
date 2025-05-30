@@ -13,65 +13,83 @@ export default function RedirectPage() {
   const { toast } = useToast()
 
   useEffect(() => {
+    // Use a flag to prevent multiple redirects
+    let isRedirecting = false;
+    
     const handleRedirect = async () => {
+      // Skip if already redirecting
+      if (isRedirecting) return;
+      
       try {
-        // Wait for Clerk to be loaded
-        if (!isLoaded) {
-          console.log("Waiting for Clerk to load...", { isLoaded })
-          return
+        console.log("Redirect handler running with:", { 
+          isLoaded, 
+          isSignedIn, 
+          userDataLoaded, 
+          loading, 
+          hasUserData: !!userData,
+          userRole: userData?.role,
+          clerkRole: user?.publicMetadata?.role
+        });
+        
+        // Wait for both Clerk and user data to be loaded
+        if (!isLoaded || !isSignedIn) {
+          if (!isLoaded) {
+            console.log("Waiting for Clerk to load...");
+            return;
+          }
+          
+          if (!isSignedIn) {
+            console.log("User not signed in, redirecting to login");
+            isRedirecting = true;
+            router.push("/auth/login");
+            return;
+          }
         }
-
-        // If not signed in, redirect to login
-        if (!isSignedIn) {
-          console.log("User not signed in, redirecting to login")
-          await router.replace("/auth/login")
-          return
-        }
-
-        // Force reload Clerk user object to get latest metadata
-        await user?.reload?.();
-
-        // If Clerk's publicMetadata.role is present, redirect immediately
-        let clerkRole = user?.publicMetadata?.role;
-        // Fallback: use unsafeMetadata.role if publicMetadata is not set yet
-        if (!clerkRole && user?.unsafeMetadata?.role) {
-          clerkRole = user.unsafeMetadata.role as string;
-        }
-        if (clerkRole) {
-          const redirectPath = `/${clerkRole}/dashboard`;
-          console.log("Clerk role found, redirecting to:", redirectPath);
-          await router.replace(redirectPath);
+        
+        // Force redirect to dashboard if we have userData with role
+        if (userData && userData.role) {
+          console.log("User data found with role, redirecting to:", `/${userData.role}/dashboard`);
+          isRedirecting = true;
+          router.push(`/${userData.role}/dashboard`);
           return;
         }
-
-        // Otherwise, wait for Supabase user data to load
-        if (!userDataLoaded || loading) {
-          console.log("Waiting for Supabase user data to load...", { userDataLoaded, loading });
+        
+        // If we have Clerk role but not userData yet
+        const clerkRole = user?.publicMetadata?.role || user?.unsafeMetadata?.role as string | undefined;
+        if (clerkRole && !loading) {
+          console.log("Clerk role found, redirecting to:", `/${clerkRole}/dashboard`);
+          isRedirecting = true;
+          router.push(`/${clerkRole}/dashboard`);
           return;
         }
-
-        // If Supabase role is present, redirect
-        if (userData?.role) {
-          const redirectPath = `/${userData.role}/dashboard`;
-          console.log("Supabase role found, redirecting to:", redirectPath);
-          await router.replace(redirectPath);
+        
+        // If we've loaded everything but still don't have a role, go to onboarding
+        if (isLoaded && !loading && !userData?.role && !clerkRole) {
+          console.log("No role found, redirecting to onboarding");
+          isRedirecting = true;
+          router.push("/onboarding");
           return;
         }
-
-        // If both are missing, send to onboarding
-        await router.replace("/onboarding");
+        
+        // If we're still loading user data, just wait
+        if (loading) {
+          console.log("Still loading user data, waiting...");
+          return;
+        }
       } catch (error) {
-        console.error("Redirect error:", error)
+        console.error("Redirect error:", error);
         toast({
           title: "Error",
           description: "Failed to redirect. Please try refreshing the page.",
           variant: "destructive",
-        })
+        });
       }
-    }
+    };
 
-    handleRedirect()
-  }, [isLoaded, user, isSignedIn, userDataLoaded, loading, userData, router, toast])
+    // Set a timeout to avoid rapid re-renders
+    const timeoutId = setTimeout(handleRedirect, 500);
+    return () => clearTimeout(timeoutId);
+  }, [isLoaded, isSignedIn, userData, loading, userDataLoaded, user, router, toast])
 
   return (
     <div className="flex min-h-screen items-center justify-center">
