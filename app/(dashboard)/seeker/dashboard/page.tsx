@@ -45,7 +45,17 @@ export default function SeekerDashboard() {
   const [dashboardError, setDashboardError] = useState<string | null>(null)
 
   const fetchDashboardData = useCallback(async () => {
-    if (!userData || statsLoading) return
+    console.log("Debug - fetchDashboardData called with:", { userData, statsLoading })
+    if (!userData) {
+      console.log("Debug - No user data available, skipping dashboard data fetch")
+      return
+    }
+    
+    // If already loading, don't start another fetch
+    if (statsLoading) {
+      console.log("Debug - Stats already loading, skipping duplicate fetch")
+      return
+    }
 
     try {
       console.log("Debug - Fetching dashboard data for user:", userData.id)
@@ -226,15 +236,16 @@ export default function SeekerDashboard() {
       return
     }
     
-    // Only fetch dashboard data if we haven't fetched it yet or if user data has changed
-    if (!statsLoading && (stats.upcomingSessions === 0 && stats.completedSessions === 0)) {
-      // Add a small delay to prevent immediate API calls
-      const timer = setTimeout(() => {
-        fetchDashboardData()
-      }, 500)
-      
-      return () => clearTimeout(timer)
-    }
+    // Always fetch dashboard data when user data is available
+    console.log("Debug - Checking if dashboard data should be fetched", { statsLoading, stats })
+    
+    // Add a small delay to prevent immediate API calls
+    const timer = setTimeout(() => {
+      console.log("Debug - Triggering dashboard data fetch")
+      fetchDashboardData()
+    }, 500)
+    
+    return () => clearTimeout(timer)
   }, [userData?.id, userData?.role, userLoading, sessionLoading, router, fetchDashboardData, statsLoading, stats])
 
   // Show error if user fetching/creation failed
