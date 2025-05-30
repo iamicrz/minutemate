@@ -213,9 +213,7 @@ export default function SeekerDashboard() {
     <div className="container mx-auto p-4">
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-semibold text-lg md:text-2xl">Welcome back, {userData?.name ?? "User"}</h1>
-        <SignOutButton>
-          <Button variant="outline">Sign Out</Button>
-        </SignOutButton>
+
       </div>
 
       {statsLoading ? (
