@@ -291,23 +291,7 @@ export default function SeekerDashboard() {
     );
   }
 
-  // Show empty state if no dashboard data
-  if (!statsLoading && stats.upcomingSessions === 0 && stats.completedSessions === 0 && stats.totalSpent === 0) {
-    return (
-      <>
-        <div style={{ background: '#fffbe6', color: '#ad6700', padding: 8, fontSize: 12, fontFamily: 'monospace', whiteSpace: 'pre', borderBottom: '1px solid #ffe58f' }}>
-          <strong>DEBUG:</strong> {JSON.stringify({ userLoading, sessionLoading, statsLoading, userData, stats, recommendedProfessionals }, null, 2)}
-        </div>
-        <div className="p-8 text-center text-gray-500">
-          No dashboard data found. Try booking a session!
-          <pre className="mt-4 bg-gray-100 p-2 text-xs text-left overflow-x-auto">
-            {JSON.stringify({ userData, stats, recommendedProfessionals }, null, 2)}
-          </pre>
-        </div>
-      </>
-    );
-  }
-
+  // Always render the dashboard
   return (
     <>
       <div style={{ background: '#fffbe6', color: '#ad6700', padding: 8, fontSize: 12, fontFamily: 'monospace', whiteSpace: 'pre', borderBottom: '1px solid #ffe58f' }}>
