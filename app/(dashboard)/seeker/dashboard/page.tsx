@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useUserData } from "@/hooks/use-user"
-import { supabase } from "@/lib/supabase"
+import { supabase, withRetry } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { CalendarDays, Clock, Search, Star, Wallet } from "lucide-react"
 import Link from "next/link"
@@ -42,6 +42,7 @@ export default function SeekerDashboard() {
   })
   const [recommendedProfessionals, setRecommendedProfessionals] = useState<RecommendedProfessional[]>([])
   const [statsLoading, setStatsLoading] = useState(true)
+  const [dashboardError, setDashboardError] = useState<string | null>(null)
 
   const fetchDashboardData = useCallback(async () => {
     if (!userData || statsLoading) return
@@ -49,16 +50,32 @@ export default function SeekerDashboard() {
     try {
       console.log("Debug - Fetching dashboard data for user:", userData.id)
       setStatsLoading(true)
+      setDashboardError(null)
       
       // Get upcoming sessions count
       const today = new Date().toISOString().split("T")[0]
       console.log("Debug - Fetching upcoming bookings...")
-      const { data: upcomingBookings, error: upcomingError } = await supabase
-        .from("bookings")
-        .select("*")
-        .eq("seeker_id", userData.id)
-        .gte("scheduled_date", today)
-        .in("status", ["confirmed", "pending"])
+      
+      // Use retry functionality for fetching upcoming bookings
+      let upcomingBookings = [];
+      let upcomingError = null;
+      
+      try {
+        const result = await withRetry(async () => {
+          return await supabase
+            .from("bookings")
+            .select("*")
+            .eq("seeker_id", userData.id)
+            .gte("scheduled_date", today)
+            .in("status", ["confirmed", "pending"]);
+        }, 3, 1000);
+        
+        upcomingBookings = result.data || [];
+        upcomingError = result.error;
+      } catch (err) {
+        console.error("Error fetching upcoming bookings after retries:", err);
+        upcomingError = err;
+      }
 
       if (upcomingError) {
         console.error("Debug - Error fetching upcoming bookings:", upcomingError)
@@ -68,11 +85,26 @@ export default function SeekerDashboard() {
 
       // Get completed sessions count
       console.log("Debug - Fetching completed bookings...")
-      const { data: completedBookings, error: completedError } = await supabase
-        .from("bookings")
-        .select("*")
-        .eq("seeker_id", userData.id)
-        .eq("status", "completed")
+      
+      // Use retry functionality for fetching completed bookings
+      let completedBookings = [];
+      let completedError = null;
+      
+      try {
+        const result = await withRetry(async () => {
+          return await supabase
+            .from("bookings")
+            .select("*")
+            .eq("seeker_id", userData.id)
+            .eq("status", "completed");
+        }, 3, 1000);
+        
+        completedBookings = result.data || [];
+        completedError = result.error;
+      } catch (err) {
+        console.error("Error fetching completed bookings after retries:", err);
+        completedError = err;
+      }
 
       if (completedError) {
         console.error("Debug - Error fetching completed bookings:", completedError)
@@ -82,12 +114,27 @@ export default function SeekerDashboard() {
 
       // Get total spent from transactions
       console.log("Debug - Fetching transactions...")
-      const { data: transactions, error: transactionsError } = await supabase
-        .from("transactions")
-        .select("amount")
-        .eq("user_id", userData.id)
-        .eq("type", "payment")
-        .eq("status", "completed")
+      
+      // Use retry functionality for fetching transactions
+      let transactions: { amount: number }[] = [];
+      let transactionsError = null;
+      
+      try {
+        const result = await withRetry(async () => {
+          return await supabase
+            .from("transactions")
+            .select("amount")
+            .eq("user_id", userData.id)
+            .eq("type", "payment")
+            .eq("status", "completed");
+        }, 3, 1000);
+        
+        transactions = result.data || [];
+        transactionsError = result.error;
+      } catch (err) {
+        console.error("Error fetching transactions after retries:", err);
+        transactionsError = err;
+      }
 
       if (transactionsError) {
         console.error("Debug - Error fetching transactions:", transactionsError)
@@ -99,16 +146,31 @@ export default function SeekerDashboard() {
 
       // Get recommended professionals (top rated with recent activity)
       console.log("Debug - Fetching recommended professionals...")
-      const { data: professionals, error: professionalsError } = await supabase
-        .from("professional_profiles")
-        .select(`
-          *,
-          users!professional_profiles_user_id_fkey(name, avatar_url)
-        `)
-        .eq("is_verified", true)
-        .gt("average_rating", 4.0)
-        .order("average_rating", { ascending: false })
-        .limit(3)
+      
+      // Use retry functionality for fetching professionals
+      let professionals = [];
+      let professionalsError = null;
+      
+      try {
+        const result = await withRetry(async () => {
+          return await supabase
+            .from("professional_profiles")
+            .select(`
+              *,
+              users!professional_profiles_user_id_fkey(name, avatar_url)
+            `)
+            .eq("is_verified", true)
+            .gt("average_rating", 4.0)
+            .order("average_rating", { ascending: false })
+            .limit(3);
+        }, 3, 1000);
+        
+        professionals = result.data || [];
+        professionalsError = result.error;
+      } catch (err) {
+        console.error("Error fetching professionals after retries:", err);
+        professionalsError = err;
+      }
 
       if (professionalsError) {
         console.error("Debug - Error fetching professionals:", professionalsError)
@@ -135,8 +197,9 @@ export default function SeekerDashboard() {
 
       setRecommendedProfessionals(formattedProfessionals)
       console.log("Debug - Dashboard data fetched successfully")
-    } catch (error) {
+    } catch (error: any) {
       console.error("Debug - Error fetching dashboard data:", error)
+      setDashboardError(error?.message || "Failed to load dashboard data")
       toast({
         title: "Error",
         description: "Failed to load dashboard data. Please try refreshing the page.",
@@ -175,10 +238,22 @@ export default function SeekerDashboard() {
   }, [userData?.id, userData?.role, userLoading, sessionLoading, router, fetchDashboardData, statsLoading, stats])
 
   // Show error if user fetching/creation failed
-  if (userError) {
+  if (userError || dashboardError) {
     return (
       <div className="p-8 text-center text-red-500">
-        <strong>Dashboard Error:</strong> {userError}
+        <strong>Dashboard Error:</strong> {userError || dashboardError}
+        <div className="mt-4">
+          <Button 
+            onClick={() => {
+              setStatsLoading(true);
+              setDashboardError(null);
+              fetchDashboardData();
+            }}
+            variant="outline"
+          >
+            Retry Loading Dashboard
+          </Button>
+        </div>
       </div>
     );
   }

@@ -17,21 +17,59 @@ console.log("Debug - Initializing Supabase client with:", {
   hasAnonKey: !!supabaseAnonKey
 })
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
-  },
-  db: {
-    schema: 'public'
-  },
-  global: {
-    headers: {
-      'x-client-info': 'minutemate-web'
+// Create a singleton instance to prevent multiple connections
+let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null;
+
+// Add retry functionality for Supabase queries
+export const withRetry = async <T>(fn: () => Promise<T>, maxRetries = 3, delay = 1000): Promise<T> => {
+  let lastError: any;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      console.error(`Supabase query failed (attempt ${attempt + 1}/${maxRetries}):`, error);
+      lastError = error;
+      
+      // If this is a rate limit error or insufficient resources error, wait longer
+      if (error.message?.includes('rate limit') || error.message?.includes('insufficient resources')) {
+        await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, attempt)));
+      } else if (attempt < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error; // Re-throw on last attempt
+      }
     }
   }
-})
+  
+  throw lastError;
+};
+
+// Get or create the Supabase client
+export const getSupabase = () => {
+  if (!supabaseInstance) {
+    supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      },
+      db: {
+        schema: 'public'
+      },
+      global: {
+        headers: {
+          'x-client-info': 'minutemate-web'
+        }
+      }
+    });
+  }
+  
+  return supabaseInstance;
+};
+
+// Export the singleton instance
+export const supabase = getSupabase();
 
 // Test the connection with retries
 const testConnection = async (retries = 3, delay = 1000) => {

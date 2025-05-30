@@ -2,7 +2,7 @@
 
 import { useUser } from "@clerk/nextjs"
 import { useContext, useEffect, useState, useCallback } from "react"
-import { supabase } from "@/lib/supabase"
+import { supabase, withRetry } from "@/lib/supabase"
 import type { Database } from "@/lib/database.types"
 import { SessionContext } from "@/components/session-provider"
 import { useToast } from "@/components/ui/use-toast"
@@ -93,34 +93,77 @@ export function useUserData() {
       if (clerkUser && clerkUser.id) {
         console.log("Debug - Fetching user by clerk_id:", clerkUser.id)
       }
-      let { data: existingUser, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("clerk_id", clerkUser.id)
-        .single()
+      
+      // Use retry functionality for fetching user data
+      let existingUser: Database["public"]["Tables"]["users"]["Row"] | null = null;
+      let error: any = null;
+      
+      try {
+        const result = await withRetry(async () => {
+          return await supabase
+            .from("users")
+            .select("*")
+            .eq("clerk_id", clerkUser.id)
+            .single();
+        }, 3, 1000);
+        
+        existingUser = result.data;
+        error = result.error;
+      } catch (err: any) {
+        console.error("Error after retries:", err);
+        error = err;
+      }
 
       // If not found by clerk_id, try by email
-      if (error && error.code === "PGRST116") {
+      if (error && typeof error === 'object' && 'code' in error && error.code === "PGRST116") {
         console.log("Debug - No user found by clerk_id, trying by email...");
         const emailToFetch = clerkUser.emailAddresses && clerkUser.emailAddresses[0]?.emailAddress ? clerkUser.emailAddresses[0].emailAddress : ""
         if (emailToFetch) {
           console.log("Debug - Fetching user by email:", emailToFetch)
         }
-        const { data: userByEmail, error: emailError } = await supabase
-          .from("users")
-          .select("*")
-          .eq("email", emailToFetch)
-          .single();
+        
+        let userByEmail = null;
+        let emailError = null;
+        
+        try {
+          const result = await withRetry(async () => {
+            return await supabase
+              .from("users")
+              .select("*")
+              .eq("email", emailToFetch)
+              .single();
+          }, 3, 1000);
+          
+          userByEmail = result.data;
+          emailError = result.error;
+        } catch (err) {
+          console.error("Error fetching by email after retries:", err);
+          emailError = err;
+        }
 
         if (!emailError && userByEmail) {
           // Update user to add clerk_id linkage
           console.log("Debug - Found user by email, updating clerk_id...");
-          const { data: updatedUser, error: updateError } = await supabase
-            .from("users")
-            .update({ clerk_id: clerkUser.id })
-            .eq("id", userByEmail.id)
-            .select()
-            .single();
+          
+          let updatedUser = null;
+          let updateError = null;
+          
+          try {
+            const result = await withRetry(async () => {
+              return await supabase
+                .from("users")
+                .update({ clerk_id: clerkUser.id })
+                .eq("id", userByEmail.id)
+                .select()
+                .single();
+            }, 3, 1000);
+            
+            updatedUser = result.data;
+            updateError = result.error;
+          } catch (err) {
+            console.error("Error updating user after retries:", err);
+            updateError = err;
+          }
           if (!updateError && updatedUser) {
             existingUser = updatedUser;
           } else {
@@ -130,16 +173,17 @@ export function useUserData() {
       }
 
       if (error && !existingUser) {
-        setError(error.message || 'Unknown error fetching user from Supabase');
+        const errorMsg = typeof error === 'object' && 'message' in error ? error.message : 'Unknown error fetching user from Supabase';
+        setError(errorMsg);
         console.error("Debug - Error fetching user (full error object):", error);
         console.error("Debug - Error fetching user (details):", {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
+          code: typeof error === 'object' && 'code' in error ? error.code : 'unknown',
+          message: typeof error === 'object' && 'message' in error ? error.message : 'unknown',
+          details: typeof error === 'object' && 'details' in error ? error.details : 'unknown',
+          hint: typeof error === 'object' && 'hint' in error ? error.hint : 'unknown'
         });
 
-        if (error.code === "PGRST116") {
+        if (typeof error === 'object' && 'code' in error && error.code === "PGRST116") {
           console.log("Debug - User doesn't exist in Supabase, creating new user...")
           const newUser = {
             clerk_id: clerkUser.id,
@@ -151,23 +195,39 @@ export function useUserData() {
 
           console.log("Debug - Attempting to create new user:", newUser)
 
-          const { data: createdUser, error: createError } = await supabase
-            .from("users")
-            .insert([newUser])
-            .select()
-            .single()
+          let createdUser = null;
+          let createError = null;
+          
+          try {
+            const result = await withRetry(async () => {
+              return await supabase
+                .from("users")
+                .insert([newUser])
+                .select()
+                .single();
+            }, 3, 1000);
+            
+            createdUser = result.data;
+            createError = result.error;
+          } catch (err) {
+            console.error("Error creating user after retries:", err);
+            createError = err;
+          }
 
           if (createError) {
             console.error("Debug - Error creating user:", {
-              code: createError.code,
-              message: createError.message,
-              details: createError.details,
-              hint: createError.hint
+              code: typeof createError === 'object' && 'code' in createError ? createError.code : 'unknown',
+              message: typeof createError === 'object' && 'message' in createError ? createError.message : 'unknown',
+              details: typeof createError === 'object' && 'details' in createError ? createError.details : 'unknown',
+              hint: typeof createError === 'object' && 'hint' in createError ? createError.hint : 'unknown'
             })
-            setSupabaseError(createError.message || 'Failed to create user in Supabase');
+            const errorMsg = typeof createError === 'object' && 'message' in createError ? 
+              (typeof createError.message === 'string' ? createError.message : 'Failed to create user in Supabase') : 
+              'Failed to create user in Supabase';
+            setSupabaseError(errorMsg);
             toast({
               title: 'Supabase User Creation Error',
-              description: createError.message || 'Failed to create user in Supabase',
+              description: errorMsg,
               variant: 'destructive',
             });
             throw createError
@@ -190,7 +250,7 @@ export function useUserData() {
           throw error
         }
       } else {
-        if (!existingUser.is_active) {
+        if (existingUser && !existingUser.is_active) {
           console.log("Debug - User account is suspended:", existingUser)
           toast({
             title: "Account Suspended",
@@ -204,16 +264,19 @@ export function useUserData() {
         }
 
         console.log("Debug - Existing user found:", existingUser)
-        setUserData(existingUser)
-        session?.setUser({
-          id: existingUser.id,
-          name: existingUser.name,
-          email: existingUser.email,
-          image: clerkUser?.imageUrl,
-          role: existingUser.role,
-          balance: existingUser.balance,
-          is_active: existingUser.is_active,
-        })
+        if (existingUser) {
+          setUserData(existingUser)
+          session?.setUser({
+            id: existingUser.id,
+            name: existingUser.name,
+            email: existingUser.email,
+            image: clerkUser?.imageUrl,
+            role: existingUser.role || 'seeker', // Default to seeker if null
+            balance: existingUser.balance,
+            is_active: existingUser.is_active,
+          })
+        }
+
       }
     } catch (error: any) {
       console.error("Debug - Error in fetchUserData:", error)
