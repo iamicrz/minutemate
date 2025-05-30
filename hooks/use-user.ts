@@ -235,6 +235,36 @@ export function useUserData() {
 
           if (createdUser) {
             console.log("Debug - New user created successfully:", createdUser)
+            // If the new user is a provider, create a professional_profiles row
+            if (createdUser.role === "provider") {
+              try {
+                const { error: profileError } = await supabase
+                  .from("professional_profiles")
+                  .insert([
+                    {
+                      user_id: createdUser.id,
+                      // Add any other required default fields here
+                    },
+                  ])
+                if (profileError) {
+                  console.error("Error creating professional profile for provider:", profileError)
+                  toast({
+                    title: 'Professional Profile Creation Error',
+                    description: profileError.message || 'Failed to create provider profile',
+                    variant: 'destructive',
+                  })
+                } else {
+                  console.log("Professional profile created for provider", createdUser.id)
+                }
+              } catch (profileCatchError: any) {
+                console.error("Exception creating professional profile for provider:", profileCatchError)
+                toast({
+                  title: 'Professional Profile Creation Exception',
+                  description: profileCatchError.message || 'Failed to create provider profile',
+                  variant: 'destructive',
+                })
+              }
+            }
             setUserData(createdUser)
             session?.setUser({
               id: createdUser.id,
