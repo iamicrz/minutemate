@@ -6,6 +6,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Search, CalendarDays, Wallet, LayoutGrid } from "lucide-react"
 import { Suspense } from "react"
 import Loading from "./dashboard/loading"
+import Link from "next/link"
 
 const navItems = [
   {
@@ -45,28 +46,28 @@ export default function SeekerLayout({
           <Tabs defaultValue="dashboard" className="w-full mb-6">
             <TabsList className="w-full justify-start">
               <TabsTrigger value="dashboard" className="flex items-center gap-2" asChild>
-                <a href="/seeker/dashboard">
+                <Link href="/seeker/dashboard">
                   <LayoutGrid className="h-4 w-4" />
                   <span className="sr-only sm:not-sr-only sm:ml-2">Dashboard</span>
-                </a>
+                </Link>
               </TabsTrigger>
               <TabsTrigger value="professionals" className="flex items-center gap-2" asChild>
-                <a href="/seeker/professionals">
+                <Link href="/seeker/professionals">
                   <Search className="h-4 w-4" />
                   <span className="sr-only sm:not-sr-only sm:ml-2">Professionals</span>
-                </a>
+                </Link>
               </TabsTrigger>
               <TabsTrigger value="bookings" className="flex items-center gap-2" asChild>
-                <a href="/seeker/bookings">
+                <Link href="/seeker/bookings">
                   <CalendarDays className="h-4 w-4" />
                   <span className="sr-only sm:not-sr-only sm:ml-2">Bookings</span>
-                </a>
+                </Link>
               </TabsTrigger>
               <TabsTrigger value="wallet" className="flex items-center gap-2" asChild>
-                <a href="/seeker/wallet">
+                <Link href="/seeker/wallet">
                   <Wallet className="h-4 w-4" />
                   <span className="sr-only sm:not-sr-only sm:ml-2">Wallet</span>
-                </a>
+                </Link>
               </TabsTrigger>
             </TabsList>
           </Tabs>
