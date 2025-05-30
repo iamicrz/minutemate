@@ -6,6 +6,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CalendarCheck, DollarSign, LayoutGrid, ListChecks, ShieldCheck } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { useRouter, usePathname } from "next/navigation"
 
 const navItemsAll = [
   {
@@ -39,6 +40,8 @@ export default function ProviderLayout({ children }: { children: React.ReactNode
   const { user } = useUser();
   const [isVerified, setIsVerified] = useState<boolean | null>(null);
   const supabase = createClientComponentClient();
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const fetchVerification = async () => {
@@ -49,9 +52,13 @@ export default function ProviderLayout({ children }: { children: React.ReactNode
         .eq('user_id', user.id)
         .single();
       setIsVerified(data?.is_verified ?? false);
+      // Redirect if not verified and not already on the verification page
+      if (data?.is_verified === false && pathname !== "/provider/verification") {
+        router.replace("/provider/verification");
+      }
     };
     fetchVerification();
-  }, [user]);
+  }, [user, pathname, router, supabase]);
 
   // Only show Verification tab if not verified; otherwise show all
   const navItems = isVerified === false
