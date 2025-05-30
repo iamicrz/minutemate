@@ -158,11 +158,11 @@ export default function SeekerDashboard() {
 
   // Fetch data when user data is available
   useEffect(() => {
-    if (userData && userData.id && !statsLoading) {
+    if (userData && userData.id) {
       console.log("User data available, fetching dashboard data")
       fetchDashboardData()
     }
-  }, [userData, fetchDashboardData, statsLoading])
+  }, [userData, fetchDashboardData])
 
   // Handle role redirects
   useEffect(() => {

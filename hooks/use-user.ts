@@ -275,6 +275,8 @@ export function useUserData() {
             balance: existingUser.balance,
             is_active: existingUser.is_active,
           })
+          // Ensure loading is set to false after user data is loaded
+          setLoading(false)
         }
 
       }
@@ -296,8 +298,11 @@ export function useUserData() {
       }, 300)
       
       return () => clearTimeout(timer)
+    } else if (userData && loading) {
+      // If we have user data but loading is still true, set it to false
+      setLoading(false)
     }
-  }, [fetchUserData, isLoaded, isSignedIn, clerkUser?.id, userData])
+  }, [fetchUserData, isLoaded, isSignedIn, clerkUser?.id, userData, loading])
 
   return { userData, loading: loading || !isLoaded, isLoaded, isSignedIn, error, stats, recommendedProfessionals }
 }
