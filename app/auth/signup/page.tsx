@@ -10,7 +10,10 @@ export default function SignupPage() {
   const [selectedRole, setSelectedRole] = useState<"seeker" | "provider">("seeker")
 
   return (
-    <div className="w-full max-w-sm space-y-6">
+    <div className="min-h-screen flex items-center justify-center bg-background">
+
+      <div className="w-full max-w-md space-y-8 bg-white rounded-xl shadow-lg p-8">
+
       {/* Role Selection */}
       <div className="space-y-4">
         <h2 className="text-lg font-semibold text-center">I want to join as:</h2>
@@ -62,6 +65,7 @@ export default function SignupPage() {
           role: selectedRole
         }}
       />
+      </div>
     </div>
   )
 }
