@@ -18,7 +18,7 @@ import { useUserData } from "@/hooks/use-user"
 
 export function UserNav() {
   const router = useRouter()
-  const { isSignedIn } = useUser()
+  const { isSignedIn, user } = useUser()
   const { userData, loading } = useUserData()
 
   if (!isSignedIn) {
@@ -53,16 +53,16 @@ export function UserNav() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar>
-            <AvatarImage src={userData.avatar_url || "/placeholder.svg"} alt={userData.name} />
-            <AvatarFallback>{getInitials(userData.name)}</AvatarFallback>
+            <AvatarImage src={user?.imageUrl || "/placeholder.svg"} alt={userData.name || "User"} />
+            <AvatarFallback>{getInitials(userData.name || "U")}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{userData.name}</p>
-            <p className="text-xs leading-none text-muted-foreground">{userData.email}</p>
+            <p className="text-sm font-medium leading-none">{userData.name || "User"}</p>
+            <p className="text-xs leading-none text-muted-foreground">{userData.email || "No email"}</p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -73,7 +73,7 @@ export function UserNav() {
           </DropdownMenuItem>
           <DropdownMenuItem>
             <Wallet className="mr-2 h-4 w-4" />
-            <span>Balance: ${userData.balance.toFixed(2)}</span>
+            <span>Balance: ${typeof userData.balance === "number" ? userData.balance.toFixed(2) : "0.00"}</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
