@@ -7,16 +7,16 @@ import { Button } from "@/components/ui/button"
 export function CTAButtons({ className = "" }: { className?: string }) {
   return (
     <div className={`flex flex-col gap-2 min-[400px]:flex-row ${className}`}>
-      <SignUpButton mode="modal">
+      <Link href="/auth/signup?role=seeker">
         <Button size="lg" className="w-full min-[400px]:w-auto">
           Find an Expert
         </Button>
-      </SignUpButton>
-      <SignUpButton mode="modal">
+      </Link>
+      <Link href="/auth/signup?role=provider">
         <Button size="lg" variant="outline" className="w-full min-[400px]:w-auto">
           Become a Provider
         </Button>
-      </SignUpButton>
+      </Link>
     </div>
   )
 }
