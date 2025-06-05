@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Override Clerk sign-in button to purple */
+.cl-formButtonPrimary {
+  background-color: #7c3aed !important; /* Brand purple */
+  color: #fff !important;
+  border: none !important;
+}
+.cl-formButtonPrimary:hover,
+.cl-formButtonPrimary:focus {
+  background-color: #6d28d9 !important; /* Darker purple on hover */
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
