@@ -3,7 +3,8 @@
 import { useUser } from "@clerk/nextjs"
 import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { createSupabaseClientWithToken } from "@/lib/supabase"
+import { useAuth } from "@clerk/nextjs" // For getToken
 import { useToast } from "@/components/ui/use-toast"
 import type { Database } from "@/lib/database.types"
 
@@ -45,6 +46,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
+    const { getToken } = useAuth();
     const syncUserData = async () => {
       console.log("Debug - Starting syncUserData with:", {
         clerkUserId: clerkUser.id,
@@ -53,49 +55,54 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         fullName: clerkUser.fullName,
         firstName: clerkUser.firstName
       })
-
       try {
-        console.log("Debug - Fetching user data from Supabase...")
+        const token = await getToken({ template: "supabase" });
+        if (!token) throw new Error("No Clerk Supabase JWT available for user sync");
+        const supabase = createSupabaseClientWithToken(token);
+
+        // Fetch user from Supabase
         const { data: existingUser, error } = await supabase
           .from("users")
           .select("*")
           .eq("clerk_id", clerkUser.id)
-          .single()
+          .single();
 
+        // Clerk role from publicMetadata
+        let clerkRole = clerkUser.publicMetadata?.role as User["role"] | undefined;
+        let supabaseRole = existingUser?.role as User["role"] | undefined;
+
+        // If user does not exist in Supabase, create them and set Clerk role if missing
         if (error) {
-          console.error("Debug - Error fetching user:", error)
-          
+          console.error("Debug - Error fetching user:", error);
           if (error.code === "PGRST116") {
-            console.log("Debug - User doesn't exist in Supabase, creating new user...")
+            // New user: assign role
+            let newRole: User["role"] = clerkRole || "seeker";
+            if (!clerkRole) {
+              // Set Clerk publicMetadata.role to 'seeker' if not present
+              try {
+                await clerkUser.update({ publicMetadata: { ...clerkUser.publicMetadata, role: newRole } });
+              } catch (e) {
+                console.error("Failed to update Clerk publicMetadata.role on new user", e);
+              }
+            }
             const newUser = {
               clerk_id: clerkUser.id,
               email: clerkUser.emailAddresses[0]?.emailAddress || "",
               name: clerkUser.fullName || clerkUser.firstName || "User",
-              role: "seeker" as const,
+              role: newRole,
               balance: 0,
               is_active: true,
-            }
-
-            console.log("Debug - Attempting to create new user:", newUser)
-
+            };
             const { data: createdUser, error: createError } = await supabase
               .from("users")
               .insert([newUser])
               .select()
-              .single()
-
+              .single();
             if (createError) {
-              console.error("Debug - Error creating user:", {
-                code: createError.code,
-                message: createError.message,
-                details: createError.details,
-                hint: createError.hint
-              })
-              throw createError
+              console.error("Debug - Error creating user:", createError);
+              throw createError;
             }
-
             if (createdUser && isMounted) {
-              console.log("Debug - New user created successfully:", createdUser)
               setUser({
                 id: createdUser.id,
                 name: createdUser.name,
@@ -104,40 +111,51 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
                 role: createdUser.role,
                 balance: createdUser.balance,
                 is_active: createdUser.is_active,
-              })
+              });
             }
           } else {
-            throw error
+            throw error;
           }
         } else if (existingUser && isMounted) {
-          console.log("Debug - Existing user found:", existingUser)
+          // Existing user: ensure roles are in sync (prefer Clerk as source of truth)
+          if (!clerkRole) {
+            // If Clerk role is missing, set it from Supabase
+            try {
+              await clerkUser.update({ publicMetadata: { ...clerkUser.publicMetadata, role: supabaseRole || "seeker" } });
+              clerkRole = supabaseRole || "seeker";
+            } catch (e) {
+              console.error("Failed to update Clerk publicMetadata.role from Supabase", e);
+            }
+          } else if (supabaseRole !== clerkRole) {
+            // If roles differ, update Supabase to match Clerk
+            const { error: updateRoleError } = await supabase
+              .from("users")
+              .update({ role: clerkRole })
+              .eq("clerk_id", clerkUser.id);
+            if (updateRoleError) {
+              console.error("Failed to sync Supabase role to match Clerk", updateRoleError);
+            }
+          }
           setUser({
             id: existingUser.id,
             name: existingUser.name,
             email: existingUser.email,
             image: clerkUser.imageUrl,
-            role: existingUser.role,
+            role: clerkRole || existingUser.role,
             balance: existingUser.balance,
             is_active: existingUser.is_active,
-          })
+          });
         }
       } catch (error: any) {
-        console.error("Debug - Error in syncUserData:", {
-          name: error.name,
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint,
-          stack: error.stack
-        })
+        console.error("Debug - Error in syncUserData:", error);
         toast({
           title: "Error",
           description: "Failed to sync user data. Please try refreshing the page.",
           variant: "destructive",
-        })
+        });
       } finally {
         if (isMounted) {
-          setIsLoading(false)
+          setIsLoading(false);
         }
       }
     }

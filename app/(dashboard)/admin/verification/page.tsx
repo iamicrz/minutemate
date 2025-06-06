@@ -9,7 +9,9 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 import { useUserData } from "@/hooks/use-user"
-import { supabase } from "@/lib/supabase"
+import { createSupabaseClientWithToken } from "@/lib/supabase"
+import { useAuth } from "@clerk/nextjs"
+// Use createSupabaseClientWithToken for authenticated/admin queries. Do not use the anon singleton for protected operations.
 import { CheckCircle2, Clock, FileText, Search, ShieldCheck, XCircle } from "lucide-react"
 import {
   Dialog,
@@ -42,6 +44,7 @@ interface VerificationRequest {
 }
 
 export default function AdminVerificationPage() {
+  const { getToken } = useAuth();
   const router = useRouter()
   const { toast } = useToast()
   const { userData } = useUserData()
@@ -60,6 +63,9 @@ export default function AdminVerificationPage() {
 
   const fetchVerificationRequests = async () => {
     try {
+      const token = await getToken({ template: "supabase" });
+      if (!token) throw new Error("No Clerk Supabase JWT available");
+      const supabase = createSupabaseClientWithToken(token); // Use authenticated client
       const { data, error } = await supabase
         .from("verification_requests")
         .select(`
@@ -114,6 +120,10 @@ export default function AdminVerificationPage() {
 
     setIsSubmitting(true);
     try {
+      const token = await getToken({ template: "supabase" });
+      if (!token) throw new Error("No Clerk Supabase JWT available");
+      if (typeof token !== 'string') throw new Error("Token must be a string");
+      const supabase = createSupabaseClientWithToken(token); // Use authenticated client
       // Update verification request
       const { error: updateError } = await supabase
         .from("verification_requests")
@@ -217,6 +227,9 @@ export default function AdminVerificationPage() {
 
     setIsSubmitting(true)
     try {
+      const token = await getToken({ template: "supabase" });
+      if (!token) throw new Error("No Clerk Supabase JWT available");
+      const supabase = createSupabaseClientWithToken(token);
       const { error } = await supabase
         .from("verification_requests")
         .update({

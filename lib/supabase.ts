@@ -46,6 +46,10 @@ export const withRetry = async <T>(fn: () => Promise<T>, maxRetries = 3, delay =
 };
 
 // Get or create the Supabase client
+/**
+ * Returns a singleton Supabase client using the anon key.
+ * Use ONLY for public/unauthenticated queries.
+ */
 export const getSupabase = () => {
   if (!supabaseInstance) {
     supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, {
@@ -64,8 +68,59 @@ export const getSupabase = () => {
       }
     });
   }
-  
   return supabaseInstance;
+};
+
+/**
+ * Creates a Supabase client with a Clerk JWT token for authenticated/role-based queries.
+ * Use this in client components, hooks, and API routes when the user is logged in.
+ * @param token Clerk JWT token (from getToken({ template: 'supabase' }))
+ */
+export function createSupabaseClientWithToken(token: string) {
+  return createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false
+    },
+    db: {
+      schema: 'public'
+    },
+    global: {
+      headers: {
+        'x-client-info': 'minutemate-web',
+        Authorization: `Bearer ${token}`
+      }
+    }
+  });
+}
+
+/**
+ * Returns a Supabase client with the service role key for admin/server-side operations.
+ * WARNING: This client bypasses RLS and should only be used in trusted server-side code.
+ */
+export const getServerSupabaseClient = () => {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("Missing environment variable: SUPABASE_SERVICE_ROLE_KEY")
+  }
+  return createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: false,
+      },
+      db: {
+        schema: 'public'
+      },
+      global: {
+        headers: {
+          'x-client-info': 'minutemate-server'
+        }
+      }
+    }
+  );
 };
 
 // Export the singleton instance
