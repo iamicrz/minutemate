@@ -71,6 +71,20 @@ export const getSupabase = () => {
 // Export the singleton instance
 export const supabase = getSupabase();
 
+export function createSupabaseClientWithToken(token: string) {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    }
+  );
+}
+
 // Test the connection with retries
 const testConnection = async (retries = 3, delay = 1000) => {
   for (let i = 0; i < retries; i++) {

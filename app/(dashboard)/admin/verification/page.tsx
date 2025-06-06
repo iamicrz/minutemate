@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 import { useUserData } from "@/hooks/use-user"
+import { useAuth } from "@clerk/nextjs"
+import { createSupabaseClientWithToken } from "@/lib/supabase"
 import { supabase } from "@/lib/supabase"
 import { CheckCircle2, Clock, FileText, Search, ShieldCheck, XCircle } from "lucide-react"
 import {
@@ -42,9 +44,23 @@ interface VerificationRequest {
 }
 
 export default function AdminVerificationPage() {
+  const { getToken } = useAuth();
   const router = useRouter()
   const { toast } = useToast()
   const { userData } = useUserData()
+
+  // Admin role check
+  useEffect(() => {
+    if (!userData) return;
+    if (userData.role !== "admin") {
+      router.push("/"); // Redirect non-admins
+    }
+  }, [userData, router]);
+
+  // Prevent rendering for non-admins or if userData is not loaded
+  if (!userData || userData.role !== "admin") {
+    return null; // Or a loading spinner if you prefer
+  }
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedRequest, setSelectedRequest] = useState<VerificationRequest | null>(null)
   const [feedbackText, setFeedbackText] = useState("")
