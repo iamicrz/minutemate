@@ -87,20 +87,26 @@ export default function VerificationPage() {
 
     setIsSubmitting(true)
 
-    try {
-      const { error } = await supabase.from("verification_requests").insert([
-        {
-          user_id: userData.id,
-          professional_title: formData.professional_title,
-          category: formData.category,
-          bio: formData.bio,
-          credentials: formData.credentials,
-          experience: formData.experience,
-          status: "pending",
-        },
-      ])
+    // Step 3: Log the payload
+    const payload = {
+      user_id: userData.clerk_id,
+      professional_title: formData.professional_title,
+      category: formData.category,
+      bio: formData.bio,
+      credentials: formData.credentials,
+      experience: formData.experience,
+      status: "pending",
+    }
+    console.log("Submitting verification request payload:", payload)
 
-      if (error) throw error
+    try {
+      const { error } = await supabase.from("verification_requests").insert([payload])
+
+      // Step 3: Log the error if present
+      if (error) {
+        console.error("Supabase insert error:", error)
+        throw error
+      }
 
       toast({
         title: "Verification submitted",

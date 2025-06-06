@@ -190,7 +190,8 @@ export function useUserData() {
             email: clerkUser.emailAddresses[0]?.emailAddress || "",
             name: clerkUser.fullName || clerkUser.firstName || "User",
             role: "seeker",
-            balance: 0
+            balance: 0,
+            is_active: true // All new users are active by default
           }
 
           console.log("Debug - Attempting to create new user:", newUser)
