@@ -63,12 +63,12 @@ export default function AdminVerificationPage() {
         .from("verification_requests")
         .select(`
           *,
-          users (
+          users:users!verification_requests_user_id_fkey (
             name,
             email
           )
         `)
-        .order("submitted_at", { ascending: false })
+        .order("created_at", { ascending: false })
 
       if (error) throw error
 
