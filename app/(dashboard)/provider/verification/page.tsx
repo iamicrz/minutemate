@@ -47,7 +47,7 @@ export default function VerificationPage() {
     bio: "",
     credentials: "",
     experience: "",
-    experience_years: "", // Add experience_years as a string for controlled input
+    experience_years: "", // Required field for the form
   })
 
   useEffect(() => {
@@ -107,7 +107,7 @@ export default function VerificationPage() {
       bio: formData.bio,
       credentials: formData.credentials,
       experience: formData.experience,
-      experience_years: Number(formData.experience_years), // Ensure this is a number
+      experience_years: Number(formData.experience_years), // Required and must be a number
       status: "pending",
     }
     console.log("Submitting verification request payload:", payload)
