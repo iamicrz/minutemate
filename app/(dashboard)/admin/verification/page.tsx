@@ -45,9 +45,18 @@ interface VerificationRequest {
 
 export default function AdminVerificationPage() {
   const { getToken } = useAuth();
-  const router = useRouter()
-  const { toast } = useToast()
-  const { userData } = useUserData()
+  const router = useRouter();
+  const { toast } = useToast();
+  const { userData } = useUserData();
+
+  // All hooks must be called before any return!
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedRequest, setSelectedRequest] = useState<VerificationRequest | null>(null);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [pendingRequests, setPendingRequests] = useState<VerificationRequest[]>([]);
+  const [completedRequests, setCompletedRequests] = useState<VerificationRequest[]>([]);
 
   // Admin role check
   useEffect(() => {
@@ -61,18 +70,11 @@ export default function AdminVerificationPage() {
   if (!userData || userData.role !== "admin") {
     return null; // Or a loading spinner if you prefer
   }
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedRequest, setSelectedRequest] = useState<VerificationRequest | null>(null)
-  const [feedbackText, setFeedbackText] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [pendingRequests, setPendingRequests] = useState<VerificationRequest[]>([])
-  const [completedRequests, setCompletedRequests] = useState<VerificationRequest[]>([])
 
   useEffect(() => {
-    if (!userData) return
-    fetchVerificationRequests()
-  }, [userData, router])
+    if (!userData) return;
+    fetchVerificationRequests();
+  }, [userData, router]);
 
   const fetchVerificationRequests = async () => {
     try {
