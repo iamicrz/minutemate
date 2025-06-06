@@ -147,7 +147,6 @@ export default function AdminVerificationPage() {
             category: selectedRequest.category,
             rate_per_15min: 50.0, // Default rate
             is_verified: true,
-            verification_status: "approved",
             updated_at: new Date().toISOString(),
           })
           .eq("user_id", selectedRequest.user_id);
@@ -164,7 +163,6 @@ export default function AdminVerificationPage() {
             category: selectedRequest.category,
             rate_per_15min: 50.0, // Default rate
             is_verified: true,
-            verification_status: "approved",
             average_rating: 0,
             total_reviews: 0,
             total_sessions: 0,
