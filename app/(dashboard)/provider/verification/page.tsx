@@ -103,6 +103,8 @@ export default function VerificationPage() {
     const payload = {
       user_id: userData.clerk_id,
       professional_title: formData.professional_title,
+      category: formData.category,
+      bio: formData.bio,
       credentials: formData.credentials,
       experience: formData.experience,
       experience_years: Number(formData.experience_years),
