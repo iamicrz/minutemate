@@ -74,7 +74,7 @@ export default function VerificationPage() {
         .from("verification_requests")
         .select("*")
         .eq("user_id", userData.clerk_id)
-        .order("submitted_at", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (error && error.code !== "PGRST116") {
