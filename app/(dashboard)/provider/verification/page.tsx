@@ -103,14 +103,12 @@ export default function VerificationPage() {
     const payload = {
       user_id: userData.clerk_id,
       professional_title: formData.professional_title,
-      category: formData.category,
-      bio: formData.bio,
       credentials: formData.credentials,
       experience: formData.experience,
-      experience_years: Number(formData.experience_years), // Required and must be a number
-      status: "pending",
+      experience_years: Number(formData.experience_years),
+      status: "pending"
     }
-    console.log("Submitting verification request payload:", payload)
+    console.log("Minimal test payload:", payload);
 
     try {
       const token = await getToken({ template: "supabase" });
@@ -121,7 +119,10 @@ export default function VerificationPage() {
           },
         },
       });
-      const { error } = await supabase.from("verification_requests").insert([payload]);
+      const { error } = await supabase
+  .from("verification_requests")
+  .insert([payload]);
+console.log("Insert error:", error);
 
       // Step 3: Log the error if present
       if (error) {
