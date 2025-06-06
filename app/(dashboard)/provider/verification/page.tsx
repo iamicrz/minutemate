@@ -11,9 +11,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
 import { useUserData } from "@/hooks/use-user"
-import { createSupabaseClientWithToken } from "@/lib/supabase"
+import { createClient } from "@supabase/supabase-js"
 import { useAuth } from "@clerk/nextjs"
-// Removed direct usage of createClient, supabaseUrl, and supabaseAnonKey. Use createSupabaseClientWithToken for all authenticated queries.
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 import { AlertCircle, CheckCircle2, Clock, FileText, Upload } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 
@@ -61,8 +63,13 @@ export default function VerificationPage() {
     if (!userData) return;
     try {
       const token = await getToken({ template: "supabase" });
-      if (!token) throw new Error("No Clerk Supabase JWT available");
-      const supabase = createSupabaseClientWithToken(token); // Use authenticated client
+      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${await getToken({ template: "supabase" })}`,
+          },
+        },
+      });
       const { data, error } = await supabase
         .from("verification_requests")
         .select("*")
@@ -107,12 +114,17 @@ export default function VerificationPage() {
 
     try {
       const token = await getToken({ template: "supabase" });
-      if (!token) throw new Error("No Clerk Supabase JWT available");
-      const supabase = createSupabaseClientWithToken(token); // Use authenticated client
+      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      });
       const { error } = await supabase
-        .from("verification_requests")
-        .insert([payload]);
-      console.log("Insert error:", error);
+  .from("verification_requests")
+  .insert([payload]);
+console.log("Insert error:", error);
 
       // Step 3: Log the error if present
       if (error) {
