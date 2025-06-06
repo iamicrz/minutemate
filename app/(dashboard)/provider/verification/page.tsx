@@ -11,7 +11,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
 import { useUserData } from "@/hooks/use-user"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@supabase/supabase-js"
+import { useAuth } from "@clerk/nextjs"
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 import { AlertCircle, CheckCircle2, Clock, FileText, Upload } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 
@@ -29,6 +33,7 @@ interface VerificationRequest {
 }
 
 export default function VerificationPage() {
+  const { getToken } = useAuth();
   const router = useRouter()
   const { toast } = useToast()
   const { userData } = useUserData()
@@ -53,31 +58,36 @@ export default function VerificationPage() {
   }, [userData, router])
 
   const fetchVerificationStatus = async () => {
-    if (!userData) return
-
+    if (!userData) return;
     try {
+      const token = await getToken({ template: "supabase" });
+      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      });
       const { data, error } = await supabase
         .from("verification_requests")
         .select("*")
-        .eq("user_id", userData.id)
+        .eq("user_id", userData.clerk_id)
         .order("submitted_at", { ascending: false })
         .limit(1)
-        .maybeSingle()
-
+        .maybeSingle();
       if (error && error.code !== "PGRST116") {
-        throw error
+        throw error;
       }
-
-      setVerificationRequest(data)
+      setVerificationRequest(data);
     } catch (error) {
-      console.error("Error fetching verification status:", error)
+      console.error("Error fetching verification status:", error);
       toast({
         title: "Error",
         description: "Failed to load verification status",
         variant: "destructive",
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -100,7 +110,15 @@ export default function VerificationPage() {
     console.log("Submitting verification request payload:", payload)
 
     try {
-      const { error } = await supabase.from("verification_requests").insert([payload])
+      const token = await getToken({ template: "supabase" });
+      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      });
+      const { error } = await supabase.from("verification_requests").insert([payload]);
 
       // Step 3: Log the error if present
       if (error) {
