@@ -66,7 +66,7 @@ export default function VerificationPage() {
       const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         global: {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${await getToken({ template: "supabase" })}`,
           },
         },
       });
