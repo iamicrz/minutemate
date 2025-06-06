@@ -26,6 +26,7 @@ interface VerificationRequest {
   bio: string
   credentials: string
   experience: string
+  experience_years: number
   status: "pending" | "approved" | "rejected"
   feedback?: string
   submitted_at: string
@@ -46,6 +47,7 @@ export default function VerificationPage() {
     bio: "",
     credentials: "",
     experience: "",
+    experience_years: "", // Add experience_years as a string for controlled input
   })
 
   useEffect(() => {
@@ -105,6 +107,7 @@ export default function VerificationPage() {
       bio: formData.bio,
       credentials: formData.credentials,
       experience: formData.experience,
+      experience_years: Number(formData.experience_years), // Ensure this is a number
       status: "pending",
     }
     console.log("Submitting verification request payload:", payload)
@@ -153,6 +156,7 @@ export default function VerificationPage() {
         bio: verificationRequest.bio,
         credentials: verificationRequest.credentials,
         experience: verificationRequest.experience,
+        experience_years: verificationRequest.experience_years?.toString() || "",
       })
       setVerificationRequest(null)
     }
@@ -250,6 +254,18 @@ export default function VerificationPage() {
                     className="min-h-[80px]"
                     value={formData.experience}
                     onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="experience_years">Years of Experience</Label>
+                  <Input
+                    id="experience_years"
+                    type="number"
+                    min={0}
+                    value={formData.experience_years}
+                    onChange={(e) => setFormData({ ...formData, experience_years: e.target.value })}
                     required
                   />
                 </div>
