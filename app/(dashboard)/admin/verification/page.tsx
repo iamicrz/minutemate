@@ -120,7 +120,7 @@ export default function AdminVerificationPage() {
         .update({
           status: "approved",
           reviewed_at: new Date().toISOString(),
-          reviewed_by: userData.id,
+          reviewed_by: userData.clerk_id,
         })
         .eq("id", selectedRequest.id)
 
@@ -190,7 +190,7 @@ export default function AdminVerificationPage() {
           status: "rejected",
           feedback: feedbackText,
           reviewed_at: new Date().toISOString(),
-          reviewed_by: userData.id,
+          reviewed_by: userData.clerk_id,
         })
         .eq("id", selectedRequest.id)
 
