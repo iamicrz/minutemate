@@ -64,7 +64,11 @@ export default function AdminVerificationPage() {
   const fetchVerificationRequests = async () => {
     try {
       const token = await getToken({ template: "supabase" });
-      if (!token) throw new Error("No Clerk Supabase JWT available");
+      if (!token) {
+        setLoading(false);
+        toast({ title: "Error", description: "Authentication failed. Please sign in again.", variant: "destructive" });
+        return;
+      }
       const supabase = createSupabaseClientWithToken(token); // Use authenticated client
       const { data, error } = await supabase
         .from("verification_requests")
@@ -77,7 +81,15 @@ export default function AdminVerificationPage() {
         `)
         .order("created_at", { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.error("Error fetching verification requests:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load verification requests",
+          variant: "destructive",
+        })
+        return;
+      }
 
       const pending = data?.filter((req) => req.status === "pending") || []
       const completed = data?.filter((req) => req.status !== "pending") || []
@@ -121,8 +133,11 @@ export default function AdminVerificationPage() {
     setIsSubmitting(true);
     try {
       const token = await getToken({ template: "supabase" });
-      if (!token) throw new Error("No Clerk Supabase JWT available");
-      if (typeof token !== 'string') throw new Error("Token must be a string");
+      if (!token) {
+        toast({ title: "Error", description: "Authentication failed. Please try again.", variant: "destructive" });
+        setIsSubmitting(false);
+        return;
+      }
       const supabase = createSupabaseClientWithToken(token); // Use authenticated client
       // Update verification request
       const { error: updateError } = await supabase
