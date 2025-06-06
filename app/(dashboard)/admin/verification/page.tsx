@@ -31,7 +31,7 @@ interface VerificationRequest {
   experience: string
   status: "pending" | "approved" | "rejected"
   feedback?: string
-  submitted_at: string
+  created_at: string
   reviewed_at?: string
   reviewed_by?: string
   users: {
@@ -294,7 +294,7 @@ export default function AdminVerificationPage() {
                         </div>
                         <p className="text-sm text-muted-foreground">{request.professional_title}</p>
                         <div className="flex items-center text-sm text-muted-foreground mt-1">
-                          <span>Submitted: {new Date(request.submitted_at).toLocaleDateString()}</span>
+                          <span>Submitted: {new Date(request.created_at).toLocaleDateString()}</span>
                         </div>
                       </div>
                     </div>
