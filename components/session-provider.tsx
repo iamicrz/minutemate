@@ -97,7 +97,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
             if (createdUser && isMounted) {
               console.log("Debug - New user created successfully:", createdUser)
               setUser({
-                id: createdUser.id,
+                id: createdUser.clerk_id,
                 name: createdUser.name,
                 email: createdUser.email,
                 image: clerkUser.imageUrl,
@@ -112,7 +112,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         } else if (existingUser && isMounted) {
           console.log("Debug - Existing user found:", existingUser)
           setUser({
-            id: existingUser.id,
+            id: existingUser.clerk_id,
             name: existingUser.name,
             email: existingUser.email,
             image: clerkUser.imageUrl,

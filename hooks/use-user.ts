@@ -243,7 +243,7 @@ export function useUserData() {
                   .from("professional_profiles")
                   .insert([
                     {
-                      user_id: createdUser.id,
+                      id: createdUser.clerk_id,
                       // Add any other required default fields here
                     },
                   ])
@@ -298,7 +298,7 @@ export function useUserData() {
         if (existingUser) {
           setUserData(existingUser)
           session?.setUser({
-            id: existingUser.id,
+            id: existingUser.clerk_id,
             name: existingUser.name,
             email: existingUser.email,
             image: clerkUser?.imageUrl,
