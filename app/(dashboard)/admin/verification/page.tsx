@@ -451,49 +451,48 @@ export default function AdminVerificationPage() {
         </TabsContent>
       </Tabs>
 
-      {selectedRequest && (
-        <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
-          <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Verification Request</DialogTitle>
-              <DialogDescription>Review the professional verification request</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                  {selectedRequest.users.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
+      <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+          {selectedRequest ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Verification Request</DialogTitle>
+                <DialogDescription>Review the professional verification request</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                    {selectedRequest.users.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">{selectedRequest.users.name}</h3>
+                    <p className="text-sm text-muted-foreground">{selectedRequest.users.email}</p>
+                    <p className="text-sm font-medium">{selectedRequest.professional_title}</p>
+                    <Badge variant="outline" className="mt-1">
+                      {selectedRequest.category}
+                    </Badge>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold">{selectedRequest.users.name}</h3>
-                  <p className="text-sm text-muted-foreground">{selectedRequest.users.email}</p>
-                  <p className="text-sm font-medium">{selectedRequest.professional_title}</p>
-                  <Badge variant="outline" className="mt-1">
-                    {selectedRequest.category}
-                  </Badge>
-                </div>
-              </div>
 
-              <div className="space-y-4">
-  <div>
-    <h4 className="text-sm font-medium mb-2">Professional Bio</h4>
-    <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
-      {selectedRequest.bio?.trim() ? selectedRequest.bio : <span className="italic text-gray-400">No bio provided.</span>}
-    </p>
-  </div>
-
-  <div>
-    <h4 className="text-sm font-medium mb-2">Credentials</h4>
-    <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
-      {selectedRequest.credentials}
-    </p>
-  </div>
-
-  <div>
-    <h4 className="text-sm font-medium mb-2">Experience</h4>
-    {typeof selectedRequest.experience_years === 'number' ? (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Professional Bio</h4>
+                    <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
+                      {selectedRequest.bio?.trim() ? selectedRequest.bio : <span className="italic text-gray-400">No bio provided.</span>}
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Credentials</h4>
+                    <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
+                      {selectedRequest.credentials}
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Experience</h4>
+                    {typeof selectedRequest.experience_years === 'number' ? (
       <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
         <span className="font-semibold">Years of Experience: </span>{selectedRequest.experience_years}
         {selectedRequest.experience && (
@@ -554,9 +553,11 @@ export default function AdminVerificationPage() {
                 </div>
               )}
             </DialogFooter>
+            </>
+          ) : null}
           </DialogContent>
         </Dialog>
-      )}
+
     </div>
   )
 }
