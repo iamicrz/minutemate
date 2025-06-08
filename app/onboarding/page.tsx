@@ -26,7 +26,7 @@ export default function OnboardingPage() {
 
     try {
       // Update user role in database
-      const { error } = await supabase.from("users").update({ role }).eq("clerk_id", user.id)
+      const { error } = await supabase.from("users").update({ role, is_active: true }).eq("clerk_id", user.id)
 
       if (error) {
         throw error
