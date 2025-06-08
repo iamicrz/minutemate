@@ -156,20 +156,21 @@ export default function VerificationPage() {
 
       // If no rows were updated, insert a new profile
       if (!updateResult || updateResult.length === 0) {
+        const profilePayload = {
+          user_id: userData.clerk_id,
+          title: formData.professional_title,
+          category: formData.category,
+          bio: formData.bio,
+          credentials: formData.credentials,
+          experience: formData.experience,
+          is_verified: false,
+          rate_per_15min: Number(formData.rate_per_15min),
+        };
+        console.log("Professional profile insert payload:", profilePayload);
         const { error: insertError } = await supabase
           .from("professional_profiles")
-          .insert([
-            {
-              user_id: userData.clerk_id,
-              title: formData.professional_title,
-              category: formData.category,
-              bio: formData.bio,
-              credentials: formData.credentials,
-              experience: formData.experience,
-              is_verified: false,
-              rate_per_15min: Number(formData.rate_per_15min),
-            },
-          ]);
+          .insert([profilePayload]);
+        console.log("Professional profile insert error:", insertError);
         if (insertError) {
           console.error("Error inserting professional profile:", insertError);
           throw insertError;
