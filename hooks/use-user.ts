@@ -199,14 +199,26 @@ export function useUserData() {
             return;
           }
 
-          const newUser = {
-            clerk_id: clerkUser.id,
-            email: clerkUser.emailAddresses[0]?.emailAddress || "",
-            name: clerkUser.fullName || clerkUser.firstName || "User",
-            role: userRole,
-            balance: 0,
-            is_active: true // All new users are active by default
-          }
+          const resolvedName =
+  clerkUser.fullName && typeof clerkUser.fullName === "string" && clerkUser.fullName.trim() ? clerkUser.fullName.trim() :
+  clerkUser.firstName && typeof clerkUser.firstName === "string" && clerkUser.firstName.trim() ? clerkUser.firstName.trim() :
+  clerkUser.emailAddresses && clerkUser.emailAddresses[0]?.emailAddress ? clerkUser.emailAddresses[0].emailAddress :
+  "User";
+
+const resolvedUsername =
+  clerkUser.username && typeof clerkUser.username === "string" && clerkUser.username.trim() ? clerkUser.username.trim() :
+  clerkUser.emailAddresses && clerkUser.emailAddresses[0]?.emailAddress ? clerkUser.emailAddresses[0].emailAddress :
+  "user";
+
+const newUser = {
+  clerk_id: clerkUser.id,
+  email: clerkUser.emailAddresses[0]?.emailAddress || "",
+  name: resolvedName,
+  username: resolvedUsername,
+  role: userRole,
+  balance: 0,
+  is_active: true // All new users are active by default
+}
 
           console.log("Debug - Attempting to create new user:", newUser)
 
