@@ -237,52 +237,123 @@ export default function VerificationPage() {
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="profession">Professional Title</Label>
-                  <Input
-                    id="profession"
-                    placeholder="e.g. Legal Consultant, UX Designer, Career Coach"
-                    value={formData.professional_title}
-                    onChange={(e) => setFormData({ ...formData, professional_title: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
-                  <Select
-                    value={formData.category}
-                    onValueChange={(value: string) => setFormData({ ...formData, category: value })}
-                    required
-                  >
-                    <SelectTrigger id="category">
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="legal">Legal</SelectItem>
-                      <SelectItem value="design">Design</SelectItem>
-                      <SelectItem value="coaching">Coaching</SelectItem>
-                      <SelectItem value="finance">Finance</SelectItem>
-                      <SelectItem value="marketing">Marketing</SelectItem>
-                      <SelectItem value="technology">Technology</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rate_per_15min">Rate per 15 min (USD)</Label>
-                  <Input
-                    id="rate_per_15min"
-                    type="number"
-                    min="0"
-                    step="1"
-                    placeholder="e.g. 50"
-                    value={formData.rate_per_15min}
-                    onChange={(e) => setFormData({ ...formData, rate_per_15min: e.target.value })}
-                    required
-                  />
-                </div>
-                {/* Add other form fields here as needed */}
-              </div>
+  {/* Professional Title */}
+  <div className="space-y-2">
+    <Label htmlFor="profession">Professional Title</Label>
+    <Input
+      id="profession"
+      placeholder="e.g. Legal Consultant, UX Designer, Career Coach"
+      value={formData.professional_title}
+      onChange={(e) => setFormData({ ...formData, professional_title: e.target.value })}
+      required
+    />
+  </div>
+
+  {/* Category */}
+  <div className="space-y-2">
+    <Label htmlFor="category">Category</Label>
+    <Select
+      value={formData.category}
+      onValueChange={(value: string) => setFormData({ ...formData, category: value })}
+      required
+    >
+      <SelectTrigger id="category">
+        <SelectValue placeholder="Select a category" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="legal">Legal</SelectItem>
+        <SelectItem value="design">Design</SelectItem>
+        <SelectItem value="coaching">Coaching</SelectItem>
+        <SelectItem value="finance">Finance</SelectItem>
+        <SelectItem value="marketing">Marketing</SelectItem>
+        <SelectItem value="technology">Technology</SelectItem>
+        <SelectItem value="other">Other</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
+
+  {/* Professional Bio */}
+  <div className="space-y-2">
+    <Label htmlFor="bio">Professional Bio</Label>
+    <Textarea
+      id="bio"
+      placeholder="Describe your expertise, experience, and the services you offer"
+      className="min-h-[120px]"
+      value={formData.bio}
+      onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+      required
+    />
+  </div>
+
+  {/* Credentials */}
+  <div className="space-y-2">
+    <Label htmlFor="credentials">Credentials</Label>
+    <Textarea
+      id="credentials"
+      placeholder="List your relevant qualifications, certifications, and education"
+      className="min-h-[80px]"
+      value={formData.credentials}
+      onChange={(e) => setFormData({ ...formData, credentials: e.target.value })}
+      required
+    />
+  </div>
+
+  {/* Experience Summary */}
+  <div className="space-y-2">
+    <Label htmlFor="experience">Experience Summary</Label>
+    <Textarea
+      id="experience"
+      placeholder="Describe your work experience relevant to your services"
+      className="min-h-[80px]"
+      value={formData.experience}
+      onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
+      required
+    />
+  </div>
+
+  {/* Years of Experience */}
+  <div className="space-y-2">
+    <Label htmlFor="experience_years">Years of Experience</Label>
+    <Input
+      id="experience_years"
+      type="number"
+      min="0"
+      step="1"
+      placeholder="e.g. 5"
+      value={formData.experience_years}
+      onChange={(e) => setFormData({ ...formData, experience_years: e.target.value })}
+      required
+    />
+  </div>
+
+  {/* Rate per 15 min (USD) */}
+  <div className="space-y-2">
+    <Label htmlFor="rate_per_15min">Rate per 15 min (USD)</Label>
+    <Input
+      id="rate_per_15min"
+      type="number"
+      min="0"
+      step="1"
+      placeholder="e.g. 50"
+      value={formData.rate_per_15min}
+      onChange={(e) => setFormData({ ...formData, rate_per_15min: e.target.value })}
+      required
+    />
+  </div>
+
+  {/* Attachments (Optional) */}
+  <div className="space-y-2">
+    <Label>Attachments (Optional)</Label>
+    <div className="border-2 border-dashed rounded-md p-6 flex flex-col items-center justify-center">
+      <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+      <p className="text-sm text-muted-foreground mb-2">Drag and drop files here or click to browse</p>
+      <p className="text-xs text-muted-foreground">Accepted formats: PDF, JPG, PNG (Max 5MB)</p>
+      <Button type="button" variant="outline" size="sm" className="mt-4">
+        Browse Files
+      </Button>
+    </div>
+  </div>
+</div>
             </CardContent>
             <CardFooter>
               <Button type="submit" className="w-full" disabled={isSubmitting}>
