@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 import { useUserData } from "@/hooks/use-user"
-import { useAuth } from "@clerk/nextjs"
+import { useAuth, useUser } from "@clerk/nextjs"
 import { createSupabaseClientWithToken } from "@/lib/supabase"
 import { supabase } from "@/lib/supabase"
 import { CheckCircle2, Clock, FileText, Search, ShieldCheck, XCircle } from "lucide-react"
@@ -45,6 +45,7 @@ interface VerificationRequest {
 
 export default function AdminVerificationPage() {
   const { getToken } = useAuth();
+  const { user, isLoaded } = useUser();
   const router = useRouter();
   const { toast } = useToast();
   const { userData } = useUserData();
@@ -58,16 +59,17 @@ export default function AdminVerificationPage() {
   const [pendingRequests, setPendingRequests] = useState<VerificationRequest[]>([]);
   const [completedRequests, setCompletedRequests] = useState<VerificationRequest[]>([]);
 
-  // Admin role check
+  // Admin role check using Clerk's publicMetadata
   useEffect(() => {
-    if (!userData) return;
-    if (userData.role !== "admin") {
+    if (!isLoaded) return; // Wait for Clerk to load
+    const role = user?.publicMetadata?.role;
+    if (role !== "admin") {
       router.push("/"); // Redirect non-admins
     }
-  }, [userData, router]);
+  }, [user, isLoaded, router]);
 
-  // Prevent rendering for non-admins or if userData is not loaded
-  if (!userData || userData.role !== "admin") {
+  // Prevent rendering for non-admins or while loading
+  if (!isLoaded || user?.publicMetadata?.role !== "admin") {
     return null; // Or a loading spinner if you prefer
   }
 
