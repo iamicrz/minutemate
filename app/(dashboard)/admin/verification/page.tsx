@@ -453,12 +453,12 @@ export default function AdminVerificationPage() {
 
       <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
         <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Verification Request</DialogTitle>
+            <DialogDescription>Review the professional verification request</DialogDescription>
+          </DialogHeader>
           {selectedRequest ? (
             <>
-              <DialogHeader>
-                <DialogTitle>Verification Request</DialogTitle>
-                <DialogDescription>Review the professional verification request</DialogDescription>
-              </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="flex items-center gap-4">
                   <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
@@ -493,44 +493,49 @@ export default function AdminVerificationPage() {
                   <div>
                     <h4 className="text-sm font-medium mb-2">Experience</h4>
                     {typeof selectedRequest.experience_years === 'number' ? (
-      <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
-        <span className="font-semibold">Years of Experience: </span>{selectedRequest.experience_years}
-        {selectedRequest.experience && (
-          <span className="block mt-1">{selectedRequest.experience}</span>
-        )}
-      </p>
-    ) : (
-      <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
-        {selectedRequest.experience || <span className="italic text-gray-400">No experience info provided.</span>}
-      </p>
-    )}
-  </div>
+                      <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
+                        <span className="font-semibold">Years of Experience: </span>{selectedRequest.experience_years}
+                        {selectedRequest.experience && (
+                          <span className="block mt-1">{selectedRequest.experience}</span>
+                        )}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
+                        {selectedRequest.experience || <span className="italic text-gray-400">No experience info provided.</span>}
+                      </p>
+                    )}
+                  </div>
 
-  {selectedRequest.status === "rejected" && selectedRequest.feedback && (
-    <div>
-      <h4 className="text-sm font-medium mb-2">Previous Rejection Feedback</h4>
-      <p className="text-sm text-muted-foreground bg-red-50 p-3 rounded-md border border-red-200">
-        {selectedRequest.feedback}
-      </p>
-    </div>
-  )}
+                  {selectedRequest.status === "rejected" && selectedRequest.feedback && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">Previous Rejection Feedback</h4>
+                      <p className="text-sm text-muted-foreground bg-red-50 p-3 rounded-md border border-red-200">
+                        {selectedRequest.feedback}
+                      </p>
+                    </div>
+                  )}
 
-  {selectedRequest.status === "pending" && (
-    <div className="space-y-2">
-      <h4 className="text-sm font-medium">Feedback (for rejection only)</h4>
-      <Textarea
-        placeholder="Provide feedback on why this verification is being rejected"
-        value={feedbackText}
-        onChange={(e) => setFeedbackText(e.target.value)}
-        className="resize-none"
-        rows={4}
-      />
-    </div>
-  )}
-</div>
-            </div>
-            <DialogFooter className="sm:justify-between">
-              {selectedRequest.status !== "pending" ? (
+                  {selectedRequest.status === "pending" && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium">Feedback (for rejection only)</h4>
+                      <Textarea
+                        placeholder="Provide feedback on why this verification is being rejected"
+                        value={feedbackText}
+                        onChange={(e) => setFeedbackText(e.target.value)}
+                        className="resize-none"
+                        rows={4}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="p-4 text-center text-muted-foreground">No request selected.</div>
+          )}
+          <DialogFooter className="sm:justify-between">
+            {selectedRequest ? (
+              selectedRequest.status !== "pending" ? (
                 <Button type="button" onClick={() => setSelectedRequest(null)}>
                   Close
                 </Button>
@@ -551,12 +556,11 @@ export default function AdminVerificationPage() {
                     {isSubmitting ? "Processing..." : "Approve"}
                   </Button>
                 </div>
-              )}
-            </DialogFooter>
-            </>
-          ) : null}
-          </DialogContent>
-        </Dialog>
+              )
+            ) : null}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   )
