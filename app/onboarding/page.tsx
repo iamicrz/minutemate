@@ -16,39 +16,26 @@ export default function OnboardingPage() {
   const router = useRouter()
   const { user } = useUser()
   const { toast } = useToast()
-  const [role, setRole] = useState<"seeker" | "provider">("seeker")
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleRoleSelection = async () => {
-    if (!user) return
+  // Fetch the user's role from Clerk metadata
+  const role = user?.publicMetadata?.role as "seeker" | "provider" | "admin" | undefined;
 
-    setIsLoading(true)
-
+  const handleContinue = async () => {
+    if (!user || !role) return;
+    setIsLoading(true);
     try {
-      // Update user role in database
-      const { error } = await supabase.from("users").update({ role, is_active: true }).eq("clerk_id", user.id)
-
-      if (error) {
-        throw error
-      }
-
-      // Update user's role in Clerk's public metadata
-      const result = await updateUserRole(user.id, role)
-      if (!result.success) {
-        throw new Error("Failed to update user role in Clerk")
-      }
+      // Ensure user is active in DB (role should already be set at creation)
+      await supabase.from("users").update({ is_active: true }).eq("clerk_id", user.id);
 
       // If provider, ensure professional profile exists for this Clerk user
       if (role === "provider") {
-        // Check if a profile already exists for this user_id (Clerk user ID)
         const { data: existingProfile, error: fetchError } = await supabase
           .from("professional_profiles")
           .select("id")
           .eq("user_id", user.id)
           .maybeSingle();
-
         if (fetchError) throw fetchError;
-
         if (!existingProfile) {
           const { error: profileError } = await supabase.from("professional_profiles").insert([
             {
@@ -67,34 +54,32 @@ export default function OnboardingPage() {
               updated_at: new Date().toISOString(),
             },
           ]);
-          if (profileError) {
-            throw profileError;
-          }
+          if (profileError) throw profileError;
         }
       }
-
       toast({
         title: "Welcome to MinuteMate!",
         description: `Your ${role} account has been set up successfully.`,
-      })
-
+      });
       // Redirect based on role
       if (role === "provider") {
-        router.push("/provider/dashboard")
+        router.push("/provider/dashboard");
+      } else if (role === "seeker") {
+        router.push("/seeker/dashboard");
       } else {
-        router.push("/seeker/dashboard")
+        router.push("/");
       }
     } catch (error) {
-      console.error("Error setting up account:", error)
+      console.error("Error setting up account:", error);
       toast({
         title: "Error",
         description: "Failed to set up your account. Please try again.",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
@@ -104,38 +89,14 @@ export default function OnboardingPage() {
           <CardDescription>Choose how you'd like to use our platform</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <RadioGroup value={role} onValueChange={(value) => setRole(value as "seeker" | "provider")}>
-            <Label
-              htmlFor="seeker"
-              className={`flex items-center space-x-4 rounded-lg border-2 p-4 cursor-pointer hover:bg-accent ${
-                role === "seeker" ? "border-primary bg-primary/5" : "border-muted"
-              }`}
-            >
-              <RadioGroupItem value="seeker" id="seeker" />
-              <User className="h-8 w-8 text-primary" />
-              <div className="flex-1">
-                <div className="font-semibold">I need professional help</div>
-                <div className="text-sm text-muted-foreground">Find and book sessions with verified experts</div>
-              </div>
-            </Label>
-            <Label
-              htmlFor="provider"
-              className={`flex items-center space-x-4 rounded-lg border-2 p-4 cursor-pointer hover:bg-accent ${
-                role === "provider" ? "border-primary bg-primary/5" : "border-muted"
-              }`}
-            >
-              <RadioGroupItem value="provider" id="provider" />
-              <Briefcase className="h-8 w-8 text-primary" />
-              <div className="flex-1">
-                <div className="font-semibold">I offer my expertise</div>
-                <div className="text-sm text-muted-foreground">Share your knowledge and earn money helping others</div>
-              </div>
-            </Label>
-          </RadioGroup>
-
-          <Button onClick={handleRoleSelection} disabled={isLoading} className="w-full">
-            {isLoading ? "Setting up your account..." : "Continue"}
-          </Button>
+          <div className="flex flex-col items-center gap-6">
+            <div className="text-xl font-semibold">
+              Welcome to MinuteMate!
+            </div>
+            <Button onClick={handleContinue} disabled={isLoading} className="w-full">
+              {isLoading ? "Setting up your account..." : "Continue"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

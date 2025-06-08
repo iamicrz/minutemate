@@ -185,11 +185,25 @@ export function useUserData() {
 
         if (typeof error === 'object' && 'code' in error && error.code === "PGRST116") {
           console.log("Debug - User doesn't exist in Supabase, creating new user...")
+          const userRole =
+            (clerkUser.publicMetadata &&
+              typeof clerkUser.publicMetadata.role === "string" &&
+              ["provider", "seeker", "admin"].includes(clerkUser.publicMetadata.role))
+              ? clerkUser.publicMetadata.role
+              : null;
+
+          if (!userRole) {
+            setError("No valid role found in Clerk profile. Please contact support or complete registration.");
+            setLoading(false);
+            setIsFetching(false);
+            return;
+          }
+
           const newUser = {
             clerk_id: clerkUser.id,
             email: clerkUser.emailAddresses[0]?.emailAddress || "",
             name: clerkUser.fullName || clerkUser.firstName || "User",
-            role: "seeker",
+            role: userRole,
             balance: 0,
             is_active: true // All new users are active by default
           }
