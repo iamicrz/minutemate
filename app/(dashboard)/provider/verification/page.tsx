@@ -101,7 +101,7 @@ export default function VerificationPage() {
 
     // Step 3: Log the payload
     const payload = {
-      user_id: userData.id,
+      user_id: userData.clerk_id,
       professional_title: formData.professional_title,
       category: formData.category,
       bio: formData.bio,
@@ -142,7 +142,7 @@ export default function VerificationPage() {
           credentials: formData.credentials,
           experience: formData.experience,
         })
-        .eq("user_id", userData.id);
+        .eq("user_id", userData.clerk_id);
       if (profileUpdateError) {
         console.error("Error updating professional profile:", profileUpdateError);
         throw profileUpdateError;
