@@ -68,9 +68,28 @@ export default function AdminVerificationPage() {
     }
   }, [user, isLoaded, router]);
 
-  // Prevent rendering for non-admins or while loading
-  if (!isLoaded || user?.publicMetadata?.role !== "admin") {
-    return null; // Or a loading spinner if you prefer
+  // Show loading spinner while Clerk is loading
+  if (!isLoaded) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary mx-auto"></div>
+          <p className="text-lg text-muted-foreground">Loading authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show unauthorized message for non-admins
+  if (user?.publicMetadata?.role !== "admin") {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-2xl font-bold text-destructive">Unauthorized</p>
+          <p className="text-muted-foreground">You do not have permission to view this page.</p>
+        </div>
+      </div>
+    );
   }
 
   useEffect(() => {
