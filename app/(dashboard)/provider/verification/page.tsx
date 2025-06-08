@@ -132,8 +132,8 @@ export default function VerificationPage() {
         throw error
       }
 
-      // Update professional_profiles with submitted info (do not change is_verified)
-      const { error: profileUpdateError } = await supabase
+      // Upsert professional_profiles: update if exists, insert if not
+      const { data: updateResult, error: updateError } = await supabase
         .from("professional_profiles")
         .update({
           title: formData.professional_title,
@@ -142,10 +142,33 @@ export default function VerificationPage() {
           credentials: formData.credentials,
           experience: formData.experience,
         })
-        .eq("user_id", userData.clerk_id);
-      if (profileUpdateError) {
-        console.error("Error updating professional profile:", profileUpdateError);
-        throw profileUpdateError;
+        .eq("user_id", userData.clerk_id)
+        .select();
+
+      if (updateError) {
+        console.error("Error updating professional profile:", updateError);
+        throw updateError;
+      }
+
+      // If no rows were updated, insert a new profile
+      if (!updateResult || updateResult.length === 0) {
+        const { error: insertError } = await supabase
+          .from("professional_profiles")
+          .insert([
+            {
+              user_id: userData.clerk_id,
+              title: formData.professional_title,
+              category: formData.category,
+              bio: formData.bio,
+              credentials: formData.credentials,
+              experience: formData.experience,
+              is_verified: false,
+            },
+          ]);
+        if (insertError) {
+          console.error("Error inserting professional profile:", insertError);
+          throw insertError;
+        }
       }
 
       toast({
