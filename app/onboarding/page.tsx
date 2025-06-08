@@ -38,19 +38,38 @@ export default function OnboardingPage() {
         throw new Error("Failed to update user role in Clerk")
       }
 
-      // If provider, create professional profile
+      // If provider, ensure professional profile exists for this Clerk user
       if (role === "provider") {
-        const { error: profileError } = await supabase.from("professional_profiles").insert([
-          {
-            user_id: (await supabase.from("users").select("id").eq("clerk_id", user.id).single()).data?.id,
-            title: "Professional",
-            category: "Other",
-            rate_per_15min: 50,
-          },
-        ])
+        // Check if a profile already exists for this user_id (Clerk user ID)
+        const { data: existingProfile, error: fetchError } = await supabase
+          .from("professional_profiles")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
 
-        if (profileError) {
-          throw profileError
+        if (fetchError) throw fetchError;
+
+        if (!existingProfile) {
+          const { error: profileError } = await supabase.from("professional_profiles").insert([
+            {
+              user_id: user.id, // Clerk user ID
+              title: "Professional",
+              category: "Other",
+              rate_per_15min: 50,
+              is_verified: false,
+              average_rating: 0,
+              total_reviews: 0,
+              total_sessions: 0,
+              bio: "",
+              credentials: "",
+              experience: "",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          ]);
+          if (profileError) {
+            throw profileError;
+          }
         }
       }
 

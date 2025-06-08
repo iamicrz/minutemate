@@ -122,14 +122,30 @@ export default function VerificationPage() {
         },
       });
       const { error } = await supabase
-  .from("verification_requests")
-  .insert([payload]);
-console.log("Insert error:", error);
+        .from("verification_requests")
+        .insert([payload]);
+      console.log("Insert error:", error);
 
       // Step 3: Log the error if present
       if (error) {
         console.error("Supabase insert error:", error)
         throw error
+      }
+
+      // Update professional_profiles with submitted info (do not change is_verified)
+      const { error: profileUpdateError } = await supabase
+        .from("professional_profiles")
+        .update({
+          title: formData.professional_title,
+          category: formData.category,
+          bio: formData.bio,
+          credentials: formData.credentials,
+          experience: formData.experience,
+        })
+        .eq("user_id", userData.clerk_id);
+      if (profileUpdateError) {
+        console.error("Error updating professional profile:", profileUpdateError);
+        throw profileUpdateError;
       }
 
       toast({

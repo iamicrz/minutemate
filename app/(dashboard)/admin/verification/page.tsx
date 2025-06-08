@@ -180,53 +180,20 @@ export default function AdminVerificationPage() {
 
       if (updateError) throw updateError;
 
-      // Check if professional profile exists
-      const { data: existingProfile, error: fetchProfileError } = await supabase
+      // Update professional_profiles row for this provider (never insert)
+      const { error: profileError } = await supabase
         .from("professional_profiles")
-        .select("id")
-        .eq("user_id", selectedRequest.user_id)
-        .maybeSingle();
-      if (fetchProfileError) throw fetchProfileError;
-
-      let profileError;
-      if (existingProfile) {
-        // Update existing profile
-        const { error: updateProfileError } = await supabase
-          .from("professional_profiles")
-          .update({
-            title: selectedRequest.professional_title,
-            bio: selectedRequest.bio,
-            credentials: selectedRequest.credentials,
-            experience: selectedRequest.experience,
-            category: selectedRequest.category,
-            rate_per_15min: 50.0, // Default rate
-            is_verified: true,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("user_id", selectedRequest.user_id);
-        profileError = updateProfileError;
-      } else {
-        // Insert new profile
-        const { error: insertProfileError } = await supabase.from("professional_profiles").insert([
-          {
-            user_id: selectedRequest.user_id,
-            title: selectedRequest.professional_title,
-            bio: selectedRequest.bio,
-            credentials: selectedRequest.credentials,
-            experience: selectedRequest.experience,
-            category: selectedRequest.category,
-            rate_per_15min: 50.0, // Default rate
-            is_verified: true,
-            average_rating: 0,
-            total_reviews: 0,
-            total_sessions: 0,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-        ]);
-        profileError = insertProfileError;
-      }
-
+        .update({
+          title: selectedRequest.professional_title,
+          bio: selectedRequest.bio,
+          credentials: selectedRequest.credentials,
+          experience: selectedRequest.experience,
+          category: selectedRequest.category,
+          rate_per_15min: 50.0, // Default rate
+          is_verified: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", selectedRequest.user_id);
       if (profileError) throw profileError;
 
       // Create notification
