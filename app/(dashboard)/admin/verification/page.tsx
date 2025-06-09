@@ -181,19 +181,16 @@ export default function AdminVerificationPage() {
       if (updateError) throw updateError;
 
       // Update professional_profiles row for this provider (never insert)
-      const { error: profileError } = await supabase
-        .from("professional_profiles")
-        .update({
-          title: selectedRequest.professional_title,
-          bio: selectedRequest.bio,
-          credentials: selectedRequest.credentials,
-          experience: selectedRequest.experience,
-          category: selectedRequest.category,
-          rate_per_15min: 50.0, // Default rate
-          is_verified: true,
-          updated_at: new Date().toISOString(),
-        })
-        .match({ user_id: selectedRequest.user_id });
+      const { error: profileError } = await supabase.rpc('upsert_professional_profile', {
+        _user_id: selectedRequest.user_id,
+        _title: selectedRequest.professional_title,
+        _category: selectedRequest.category,
+        _bio: selectedRequest.bio,
+        _credentials: selectedRequest.credentials,
+        _experience: selectedRequest.experience,
+        _is_verified: true,
+        _rate_per_15min: 50.0,
+      });
       if (profileError) throw profileError;
 
       // Create notification
