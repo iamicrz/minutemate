@@ -136,24 +136,21 @@ export default function VerificationPage() {
       }
 
       // Upsert professional_profiles: update if exists, insert if not
-      const profilePayload = {
-        user_id: userData.clerk_id,
-        title: formData.professional_title,
-        category: formData.category,
-        bio: formData.bio,
-        credentials: formData.credentials,
-        experience: formData.experience,
-        is_verified: false,
-        rate_per_15min: Number(formData.rate_per_15min),
-      };
-      console.log("Professional profile upsert payload:", profilePayload);
-      const { error: upsertError } = await supabase
-        .from("professional_profiles")
-        .upsert([profilePayload], { onConflict: 'user_id' });
-      console.log("Professional profile upsert error:", upsertError);
-      if (upsertError) {
-        console.error("Error upserting professional profile:", upsertError);
-        throw upsertError;
+      // Use new Supabase RPC function to upsert professional profile
+      const { error: rpcError } = await supabase.rpc('upsert_professional_profile', {
+        _user_id: userData.clerk_id,
+        _title: formData.professional_title,
+        _category: formData.category,
+        _bio: formData.bio,
+        _credentials: formData.credentials,
+        _experience: formData.experience,
+        _is_verified: false,
+        _rate_per_15min: Number(formData.rate_per_15min),
+      });
+      console.log("Professional profile RPC upsert error:", rpcError);
+      if (rpcError) {
+        console.error("Error upserting professional profile via RPC:", rpcError);
+        throw rpcError;
       }
 
 
