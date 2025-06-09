@@ -44,6 +44,20 @@ interface VerificationRequest {
 }
 
 export default function AdminVerificationPage() {
+  // All hooks must be called before any return!
+  const { getToken } = useAuth();
+  const { user, isLoaded } = useUser();
+  const router = useRouter();
+  const { toast } = useToast();
+  const { userData } = useUserData();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedRequest, setSelectedRequest] = useState<VerificationRequest | null>(null);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [pendingRequests, setPendingRequests] = useState<VerificationRequest[]>([]);
+  const [completedRequests, setCompletedRequests] = useState<VerificationRequest[]>([]);
+
   // --- Robust logging for all critical state/props ---
   // These logs will help debug any future silent crashes
   try {
@@ -55,21 +69,6 @@ export default function AdminVerificationPage() {
       });
     }
   } catch (e) { /* ignore logging errors */ }
-
-  const { getToken } = useAuth();
-  const { user, isLoaded } = useUser();
-  const router = useRouter();
-  const { toast } = useToast();
-  const { userData } = useUserData();
-
-  // All hooks must be called before any return!
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedRequest, setSelectedRequest] = useState<VerificationRequest | null>(null);
-  const [feedbackText, setFeedbackText] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [pendingRequests, setPendingRequests] = useState<VerificationRequest[]>([]);
-  const [completedRequests, setCompletedRequests] = useState<VerificationRequest[]>([]);
 
   // Admin role check using Clerk's publicMetadata
   useEffect(() => {
