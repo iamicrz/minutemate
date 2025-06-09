@@ -181,7 +181,16 @@ export default function AdminVerificationPage() {
       if (updateError) throw updateError;
 
       // Update professional_profiles row for this provider (never insert)
-      const { error: profileError } = await supabase.rpc('upsert_professional_profile', {
+      if (!selectedRequest) {
+        toast({
+          title: "Error",
+          description: "No verification request selected.",
+          variant: "destructive",
+        });
+        console.error("selectedRequest is null or undefined");
+        return;
+      }
+      const rpcArgs = {
         _user_id: selectedRequest.user_id,
         _title: selectedRequest.professional_title,
         _category: selectedRequest.category,
@@ -190,8 +199,20 @@ export default function AdminVerificationPage() {
         _experience: selectedRequest.experience,
         _is_verified: true,
         _rate_per_15min: 50.0,
-      });
-      if (profileError) throw profileError;
+      };
+      console.log("Calling upsert_professional_profile RPC with args:", rpcArgs);
+      try {
+        const { error: profileError } = await supabase.rpc('upsert_professional_profile', rpcArgs);
+        if (profileError) throw profileError;
+      } catch (err) {
+        console.error("Error in upsert_professional_profile RPC:", err);
+        toast({
+          title: "Error",
+          description: "Failed to update provider profile. See console for details.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       // Create notification
       await supabase.from("notifications").insert([
