@@ -193,7 +193,7 @@ export default function AdminVerificationPage() {
           is_verified: true,
           updated_at: new Date().toISOString(),
         })
-        .eq("user_id", selectedRequest.user_id);
+        .match({ user_id: selectedRequest.user_id });
       if (profileError) throw profileError;
 
       // Create notification
