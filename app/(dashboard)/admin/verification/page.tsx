@@ -44,6 +44,18 @@ interface VerificationRequest {
 }
 
 export default function AdminVerificationPage() {
+  // --- Robust logging for all critical state/props ---
+  // These logs will help debug any future silent crashes
+  try {
+    // This will log every render, but only in dev mode
+    if (process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.log('[AdminVerificationPage] Render', {
+        windowLocation: typeof window !== 'undefined' ? window.location.href : undefined,
+      });
+    }
+  } catch (e) { /* ignore logging errors */ }
+
   const { getToken } = useAuth();
   const { user, isLoaded } = useUser();
   const router = useRouter();
@@ -79,6 +91,19 @@ export default function AdminVerificationPage() {
       </div>
     );
   }
+
+  // Defensive: if user is missing, show error
+  if (!user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-2xl font-bold text-destructive">User not loaded</p>
+          <p className="text-muted-foreground">Please refresh or re-login.</p>
+        </div>
+      </div>
+    );
+  }
+
 
   // Show unauthorized message for non-admins
   if (user?.publicMetadata?.role !== "admin") {
@@ -298,7 +323,16 @@ export default function AdminVerificationPage() {
     }
   }
 
-  if (!userData) return null
+  if (!userData) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-2xl font-bold text-destructive">User data not loaded</p>
+          <p className="text-muted-foreground">Please refresh or re-login.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -442,7 +476,7 @@ export default function AdminVerificationPage() {
             <DialogTitle>Verification Request</DialogTitle>
             <DialogDescription>Review the professional verification request</DialogDescription>
           </DialogHeader>
-          {selectedRequest ? (
+          {selectedRequest && selectedRequest.users && selectedRequest.users.name ? (
             <>
               <div className="space-y-4 py-4">
                 <div className="flex items-center gap-4">
