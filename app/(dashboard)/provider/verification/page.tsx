@@ -136,46 +136,26 @@ export default function VerificationPage() {
       }
 
       // Upsert professional_profiles: update if exists, insert if not
-      const { data: updateResult, error: updateError } = await supabase
+      const profilePayload = {
+        user_id: userData.clerk_id,
+        title: formData.professional_title,
+        category: formData.category,
+        bio: formData.bio,
+        credentials: formData.credentials,
+        experience: formData.experience,
+        is_verified: false,
+        rate_per_15min: Number(formData.rate_per_15min),
+      };
+      console.log("Professional profile upsert payload:", profilePayload);
+      const { error: upsertError } = await supabase
         .from("professional_profiles")
-        .update({
-          title: formData.professional_title,
-          category: formData.category,
-          bio: formData.bio,
-          credentials: formData.credentials,
-          experience: formData.experience,
-          rate_per_15min: Number(formData.rate_per_15min),
-        })
-        .match({ user_id: userData.clerk_id })
-        .select();
-
-      if (updateError) {
-        console.error("Error updating professional profile:", updateError);
-        throw updateError;
+        .upsert([profilePayload], { onConflict: 'user_id' });
+      console.log("Professional profile upsert error:", upsertError);
+      if (upsertError) {
+        console.error("Error upserting professional profile:", upsertError);
+        throw upsertError;
       }
 
-      // If no rows were updated, insert a new profile
-      if (!updateResult || updateResult.length === 0) {
-        const profilePayload = {
-          user_id: userData.clerk_id,
-          title: formData.professional_title,
-          category: formData.category,
-          bio: formData.bio,
-          credentials: formData.credentials,
-          experience: formData.experience,
-          is_verified: false,
-          rate_per_15min: Number(formData.rate_per_15min),
-        };
-        console.log("Professional profile insert payload:", profilePayload);
-        const { error: insertError } = await supabase
-          .from("professional_profiles")
-          .insert([profilePayload]);
-        console.log("Professional profile insert error:", insertError);
-        if (insertError) {
-          console.error("Error inserting professional profile:", insertError);
-          throw insertError;
-        }
-      }
 
       toast({
         title: "Verification submitted",
