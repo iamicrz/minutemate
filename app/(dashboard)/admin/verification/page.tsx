@@ -59,9 +59,7 @@ export default function AdminVerificationPage() {
   const [completedRequests, setCompletedRequests] = useState<VerificationRequest[]>([]);
 
   // --- Robust logging for all critical state/props ---
-  // These logs will help debug any future silent crashes
   try {
-    // This will log every render, but only in dev mode
     if (process.env.NODE_ENV !== 'production') {
       // eslint-disable-next-line no-console
       console.log('[AdminVerificationPage] Render', {
@@ -72,12 +70,58 @@ export default function AdminVerificationPage() {
 
   // Admin role check using Clerk's publicMetadata
   useEffect(() => {
-    if (!isLoaded) return; // Wait for Clerk to load
-    const role = user?.publicMetadata?.role;
-    if (role !== "admin") {
-      router.push("/"); // Redirect non-admins
-    }
-  }, [user, isLoaded, router]);
+  if (!isLoaded) return; // Wait for Clerk to load
+  if (!user) return; // Wait for user to be loaded
+  const role = user.publicMetadata?.role;
+  if (role !== "admin") {
+    router.push("/"); // Redirect non-admins
+  }
+}, [user, isLoaded, router]);
+
+  // Fetch verification requests once userData is loaded
+  useEffect(() => {
+    if (!userData) return;
+    const fetchVerificationRequests = async () => {
+      try {
+        const token = await getToken({ template: "supabase" });
+        if (!token) throw new Error("No Clerk Supabase JWT available");
+        const supabase = createSupabaseClientWithToken(token); // Use authenticated client
+        const { data, error } = await supabase
+          .from("verification_requests")
+          .select(`
+            *,
+            users:users!verification_requests_user_id_fkey (
+              name,
+              email
+            )
+          `)
+          .order("created_at", { ascending: false });
+        if (error) {
+          console.error("Error fetching verification requests:", error);
+          toast({
+            title: "Error",
+            description: "Failed to load verification requests",
+            variant: "destructive",
+          });
+          return;
+        }
+        const pending = data?.filter((req) => req.status === "pending") || [];
+        const completed = data?.filter((req) => req.status !== "pending") || [];
+        setPendingRequests(pending);
+        setCompletedRequests(completed);
+      } catch (error) {
+        console.error("Error fetching verification requests:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load verification requests",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVerificationRequests();
+  }, [userData, getToken, toast]);
 
   // Show loading spinner while Clerk is loading
   if (!isLoaded) {
@@ -103,7 +147,6 @@ export default function AdminVerificationPage() {
     );
   }
 
-
   // Show unauthorized message for non-admins
   if (user?.publicMetadata?.role !== "admin") {
     return (
@@ -114,212 +157,6 @@ export default function AdminVerificationPage() {
         </div>
       </div>
     );
-  }
-
-  useEffect(() => {
-    if (!userData) return;
-    fetchVerificationRequests();
-  }, [userData, router]);
-
-  const fetchVerificationRequests = async () => {
-    try {
-      const token = await getToken({ template: "supabase" });
-      if (!token) throw new Error("No Clerk Supabase JWT available");
-      const supabase = createSupabaseClientWithToken(token); // Use authenticated client
-      const { data, error } = await supabase
-        .from("verification_requests")
-        .select(`
-          *,
-          users:users!verification_requests_user_id_fkey (
-            name,
-            email
-          )
-        `)
-        .order("created_at", { ascending: false })
-
-      if (error) {
-        console.error("Error fetching verification requests:", error)
-        toast({
-          title: "Error",
-          description: "Failed to load verification requests",
-          variant: "destructive",
-        })
-        return;
-      }
-
-      const pending = data?.filter((req) => req.status === "pending") || []
-      const completed = data?.filter((req) => req.status !== "pending") || []
-
-      setPendingRequests(pending)
-      setCompletedRequests(completed)
-    } catch (error) {
-      console.error("Error fetching verification requests:", error)
-      toast({
-        title: "Error",
-        description: "Failed to load verification requests",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const filteredPendingRequests = pendingRequests.filter(
-    (request) =>
-      request.users.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.users.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.professional_title.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
-
-  const filteredCompletedRequests = completedRequests.filter(
-    (request) =>
-      request.users.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.users.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.professional_title.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
-
-  const handleViewDetails = (request: VerificationRequest) => {
-    setSelectedRequest(request)
-    setFeedbackText("")
-  }
-
-  const handleApprove = async () => {
-    if (!selectedRequest || !userData) return;
-
-    setIsSubmitting(true);
-    try {
-      const token = await getToken({ template: "supabase" });
-      if (!token) throw new Error("No Clerk Supabase JWT available");
-      if (typeof token !== 'string') throw new Error("Token must be a string");
-      const supabase = createSupabaseClientWithToken(token); // Use authenticated client
-      // Update verification request
-      const { error: updateError } = await supabase
-        .from("verification_requests")
-        .update({
-          status: "approved",
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: userData.clerk_id,
-        })
-        .eq("id", selectedRequest.id);
-
-      if (updateError) throw updateError;
-
-      // Update professional_profiles row for this provider (never insert)
-      if (!selectedRequest) {
-        toast({
-          title: "Error",
-          description: "No verification request selected.",
-          variant: "destructive",
-        });
-        console.error("selectedRequest is null or undefined");
-        return;
-      }
-      const rpcArgs = {
-        _user_id: selectedRequest.user_id,
-        _title: selectedRequest.professional_title,
-        _category: selectedRequest.category,
-        _bio: selectedRequest.bio,
-        _credentials: selectedRequest.credentials,
-        _experience: selectedRequest.experience,
-        _is_verified: true,
-        _rate_per_15min: 50.0,
-      };
-      console.log("Calling upsert_professional_profile RPC with args:", rpcArgs);
-      try {
-        const { error: profileError } = await supabase.rpc('upsert_professional_profile', rpcArgs);
-        if (profileError) throw profileError;
-      } catch (err) {
-        console.error("Error in upsert_professional_profile RPC:", err);
-        toast({
-          title: "Error",
-          description: "Failed to update provider profile. See console for details.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Create notification
-      await supabase.from("notifications").insert([
-        {
-          user_id: selectedRequest.user_id,
-          title: "Verification Approved",
-          message:
-            "Congratulations! Your professional verification has been approved. You can now start offering your services.",
-          type: "verification",
-        },
-      ]);
-
-      toast({
-        title: "Verification approved",
-        description: `${selectedRequest.users.name} has been verified as a ${selectedRequest.professional_title}`,
-      });
-
-      await fetchVerificationRequests();
-      setSelectedRequest(null);
-    } catch (error: any) {
-      console.error("Error approving verification:", error);
-      toast({
-        title: "Error",
-        description: error?.message || "Failed to approve verification",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  const handleReject = async () => {
-    if (!selectedRequest || !userData || !feedbackText) {
-      toast({
-        title: "Feedback required",
-        description: "Please provide feedback for the rejection",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setIsSubmitting(true)
-    try {
-      const { error } = await supabase
-        .from("verification_requests")
-        .update({
-          status: "rejected",
-          feedback: feedbackText,
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: userData.clerk_id,
-        })
-        .eq("id", selectedRequest.id)
-
-      if (error) throw error
-
-      // Create notification
-      await supabase.from("notifications").insert([
-        {
-          user_id: selectedRequest.user_id,
-          title: "Verification Requires Updates",
-          message: "Your verification request needs additional information. Please check the feedback and resubmit.",
-          type: "verification",
-        },
-      ])
-
-      toast({
-        title: "Verification rejected",
-        description: `Feedback has been sent to ${selectedRequest.users.name}`,
-      })
-
-      await fetchVerificationRequests()
-      setSelectedRequest(null)
-      setFeedbackText("")
-    } catch (error) {
-      console.error("Error rejecting verification:", error)
-      toast({
-        title: "Error",
-        description: "Failed to reject verification",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
   }
 
   if (!userData) {
@@ -338,8 +175,143 @@ export default function AdminVerificationPage() {
       <div className="flex items-center justify-center p-8">
         <div className="text-center">Loading verification requests...</div>
       </div>
-    )
+    );
   }
+
+  // --- Filtering and handlers must be defined here, after hooks, before return ---
+  const filteredPendingRequests = pendingRequests.filter((request: VerificationRequest) =>
+    request.users?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    request.users?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    request.professional_title?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredCompletedRequests = completedRequests.filter((request: VerificationRequest) =>
+    request.users?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    request.users?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    request.professional_title?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleViewDetails = (request: VerificationRequest) => {
+    setSelectedRequest(request);
+    setFeedbackText("");
+  };
+
+  const handleApprove = async () => {
+    if (!selectedRequest || !userData) return;
+    setIsSubmitting(true);
+    try {
+      const token = await getToken({ template: "supabase" });
+      if (!token) throw new Error("No Clerk Supabase JWT available");
+      if (typeof token !== 'string') throw new Error("Token must be a string");
+      const supabase = createSupabaseClientWithToken(token); // Use authenticated client
+      // Update verification request
+      const { error } = await supabase
+        .from("verification_requests")
+        .update({
+          status: "approved",
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: userData.clerk_id,
+        })
+        .eq("id", selectedRequest.id);
+      if (error) throw error;
+      // Update professional_profiles row for this provider (never insert)
+      const rpcArgs = {
+        _user_id: selectedRequest.user_id,
+        _title: selectedRequest.professional_title,
+        _category: selectedRequest.category,
+        _bio: selectedRequest.bio,
+        _credentials: selectedRequest.credentials,
+        _experience: selectedRequest.experience,
+        _is_verified: true,
+        _rate_per_15min: 50.0,
+      };
+      try {
+        const { error: profileError } = await supabase.rpc('upsert_professional_profile', rpcArgs);
+        if (profileError) throw profileError;
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: "Failed to update provider profile. See console for details.",
+          variant: "destructive",
+        });
+        return;
+      }
+      // Create notification
+      await supabase.from("notifications").insert([
+        {
+          user_id: selectedRequest.user_id,
+          title: "Verification Approved",
+          message:
+            "Congratulations! Your professional verification has been approved. You can now start offering your services.",
+          type: "verification",
+        },
+      ]);
+      toast({
+        title: "Verification approved",
+        description: `${selectedRequest.users.name} has been verified as a ${selectedRequest.professional_title}`,
+      });
+      setLoading(true); // Triggers useEffect to refetch
+      setSelectedRequest(null);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to approve verification",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!selectedRequest || !userData || !feedbackText) {
+      toast({
+        title: "Feedback required",
+        description: "Please provide feedback for the rejection",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const token = await getToken({ template: "supabase" });
+      if (!token) throw new Error("No Clerk Supabase JWT available");
+      const supabase = createSupabaseClientWithToken(token); // Use authenticated client
+      const { error } = await supabase
+        .from("verification_requests")
+        .update({
+          status: "rejected",
+          feedback: feedbackText,
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: userData.clerk_id,
+        })
+        .eq("id", selectedRequest.id);
+      if (error) throw error;
+      await supabase.from("notifications").insert([
+        {
+          user_id: selectedRequest.user_id,
+          title: "Verification Requires Updates",
+          message: "Your verification request needs additional information. Please check the feedback and resubmit.",
+          type: "verification",
+        },
+      ]);
+      toast({
+        title: "Verification rejected",
+        description: `Feedback has been sent to ${selectedRequest.users.name}`,
+      });
+      setLoading(true); // Triggers useEffect to refetch
+      setSelectedRequest(null);
+      setFeedbackText("");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reject verification",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">
