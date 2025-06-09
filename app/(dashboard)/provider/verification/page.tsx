@@ -146,7 +146,7 @@ export default function VerificationPage() {
           experience: formData.experience,
           rate_per_15min: Number(formData.rate_per_15min),
         })
-        .eq("user_id", userData.clerk_id)
+        .match({ user_id: userData.clerk_id })
         .select();
 
       if (updateError) {
