@@ -43,6 +43,8 @@ export default function AvailabilityPage() {
   const { toast } = useToast()
   const { userData } = useUserData()
   const [professionalId, setProfessionalId] = useState<string | null>(null)
+// professionalId should always be the id from professional_profiles, which is fetched using userData.clerk_id
+// All inserts should use this value as the foreign key
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([])
   const [loading, setLoading] = useState(true)
@@ -67,6 +69,11 @@ export default function AvailabilityPage() {
   }, [userData, loading, router])
 
   const fetchData = async () => {
+    console.log("[fetchData] userData:", userData);
+    if (userData) {
+      console.log("[fetchData] userData.id:", userData.id);
+    }
+
     if (!userData) return
 
     try {
@@ -74,12 +81,14 @@ export default function AvailabilityPage() {
       const { data: profile, error: profileError } = await supabase
         .from("professional_profiles")
         .select("*")
-        .eq("user_id", userData.id)
-        .single()
+        .eq("user_id", userData.clerk_id)
+        .single();
+      console.log("[fetchData] profile fetch result:", profile, "error:", profileError);
 
       if (profileError) throw profileError
 
-      setProfessionalId(profile.id)
+      // Set professionalId to Clerk user ID, matching the foreign key
+setProfessionalId(userData.clerk_id)
       setSessionRate(profile.rate_per_15min.toString())
 
       // Fetch availability slots
@@ -118,6 +127,9 @@ export default function AvailabilityPage() {
   }
 
   const addTimeSlot = async () => {
+  console.log("[addTimeSlot] called", newTimeSlot, "professionalId:", professionalId);
+  console.log("[addTimeSlot] called", newTimeSlot);
+
     if (!professionalId) return
 
     try {
@@ -129,7 +141,6 @@ export default function AvailabilityPage() {
             day_of_week: newTimeSlot.day_of_week,
             start_time: newTimeSlot.start_time,
             end_time: newTimeSlot.end_time,
-            is_active: true,
           },
         ])
         .select()
@@ -137,7 +148,11 @@ export default function AvailabilityPage() {
 
       if (error) throw error
 
-      setTimeSlots([...timeSlots, data])
+      setTimeSlots(prev => {
+        const updated = [...prev, data];
+        console.log("[addTimeSlot] Updated timeSlots:", updated);
+        return updated;
+      })
       toast({
         title: "Time slot added",
         description: `Added ${newTimeSlot.start_time} - ${newTimeSlot.end_time} on ${DAYS_OF_WEEK.find((d) => d.value === newTimeSlot.day_of_week)?.label}`,
@@ -153,12 +168,18 @@ export default function AvailabilityPage() {
   }
 
   const removeTimeSlot = async (id: string) => {
+  console.log("[removeTimeSlot] called", id, "professionalId:", professionalId);
+  console.log("[removeTimeSlot] called", id);
     try {
       const { error } = await supabase.from("availability_slots").delete().eq("id", id)
 
       if (error) throw error
 
-      setTimeSlots(timeSlots.filter((slot) => slot.id !== id))
+      setTimeSlots(prev => {
+        const updated = prev.filter((slot) => slot.id !== id);
+        console.log("[removeTimeSlot] Updated timeSlots:", updated);
+        return updated;
+      })
       toast({
         title: "Time slot removed",
       })
@@ -173,8 +194,11 @@ export default function AvailabilityPage() {
   }
 
   const saveSettings = async () => {
+  console.log("[saveSettings] called", { sessionRate, bufferTime }, "professionalId:", professionalId);
+  console.log("[saveSettings] called", { sessionRate, bufferTime });
     if (!professionalId) return
 
+    console.log("[saveSettings] setSaving(true)");
     setSaving(true)
     try {
       const { error } = await supabase
@@ -198,12 +222,18 @@ export default function AvailabilityPage() {
         variant: "destructive",
       })
     } finally {
+      console.log("[saveSettings] setSaving(false)");
       setSaving(false)
     }
   }
 
   const blockDate = async () => {
-    if (!date || !professionalId) return
+  console.log("[blockDate] called", date, "professionalId:", professionalId);
+  console.log("[blockDate] called", date);
+    if (!date || !professionalId) {
+    console.warn("[blockDate] missing date or professionalId", { date, professionalId });
+    return;
+  }
 
     const dateString = date.toISOString().split("T")[0]
 
@@ -222,7 +252,11 @@ export default function AvailabilityPage() {
 
       if (error) throw error
 
-      setBlockedDates([...blockedDates, data])
+      setBlockedDates(prev => {
+        const updated = [...prev, data];
+        console.log("[blockDate] Updated blockedDates:", updated);
+        return updated;
+      })
       toast({
         title: "Date blocked",
         description: `${date.toLocaleDateString()} has been marked as unavailable`,
@@ -238,12 +272,18 @@ export default function AvailabilityPage() {
   }
 
   const removeBlockedDate = async (id: string) => {
+  console.log("[removeBlockedDate] called", id, "professionalId:", professionalId);
+  console.log("[removeBlockedDate] called", id);
     try {
       const { error } = await supabase.from("blocked_dates").delete().eq("id", id)
 
       if (error) throw error
 
-      setBlockedDates(blockedDates.filter((date) => date.id !== id))
+      setBlockedDates(prev => {
+        const updated = prev.filter((date) => date.id !== id);
+        console.log("[removeBlockedDate] Updated blockedDates:", updated);
+        return updated;
+      })
       toast({
         title: "Blocked date removed",
       })
