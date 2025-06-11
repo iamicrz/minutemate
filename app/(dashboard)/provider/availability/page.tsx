@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/components/ui/use-toast"
 import { useUserData } from "@/hooks/use-user"
-import { supabase } from "@/lib/supabase"
+import { supabase, createSupabaseClientWithToken } from "@/lib/supabase"
+import { useAuth } from "@clerk/clerk-react"
 import { CalendarDays, Plus, Save, Trash2 } from "lucide-react"
 
 interface TimeSlot {
@@ -39,10 +40,12 @@ const DAYS_OF_WEEK = [
 ]
 
 export default function AvailabilityPage() {
+  const { getToken, isSignedIn } = useAuth();
   const router = useRouter()
   const { toast } = useToast()
   const { userData } = useUserData()
-  const [professionalId, setProfessionalId] = useState<string | null>(null)
+  // professionalId is always a string (never null)
+  const [professionalId, setProfessionalId] = useState<string>("");
 // professionalId should always be the id from professional_profiles, which is fetched using userData.clerk_id
 // All inserts should use this value as the foreign key
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
@@ -88,32 +91,31 @@ export default function AvailabilityPage() {
       if (profileError) throw profileError
 
       // Set professionalId to Clerk user ID, matching the foreign key
-setProfessionalId(userData.clerk_id)
-      setSessionRate(profile.rate_per_15min.toString())
+      if (!userData?.clerk_id) throw new Error("No Clerk user ID found");
+      setProfessionalId(userData.clerk_id);
+      setSessionRate(profile.rate_per_15min?.toString?.() ?? "");
 
-      // Fetch availability slots
+      // Fetch availability slots using professionalId (Clerk user ID)
       const { data: slotsData, error: slotsError } = await supabase
         .from("availability_slots")
         .select("*")
-        .eq("professional_id", profile.id)
+        .eq("professional_id", userData.clerk_id)
         .order("day_of_week")
-        .order("start_time")
+        .order("start_time");
 
-      if (slotsError) throw slotsError
+      if (slotsError) throw slotsError;
+      setTimeSlots(slotsData || []);
 
-      setTimeSlots(slotsData || [])
-
-      // Fetch blocked dates
+      // Fetch blocked dates using professionalId (Clerk user ID)
       const { data: blockedData, error: blockedError } = await supabase
         .from("blocked_dates")
         .select("*")
-        .eq("professional_id", profile.id)
+        .eq("professional_id", userData.clerk_id)
         .gte("blocked_date", new Date().toISOString().split("T")[0])
-        .order("blocked_date")
+        .order("blocked_date");
 
-      if (blockedError) throw blockedError
-
-      setBlockedDates(blockedData || [])
+      if (blockedError) throw blockedError;
+      setBlockedDates(blockedData || []);
     } catch (error) {
       console.error("Error fetching data:", error)
       toast({
@@ -126,14 +128,25 @@ setProfessionalId(userData.clerk_id)
     }
   }
 
-  const addTimeSlot = async () => {
+  // Ensure async for getToken
+const addTimeSlot = async () => {
+  if (!professionalId || !isSignedIn) {
+    toast({ title: "Error", description: "Not signed in or missing provider info", variant: "destructive" });
+    return;
+  }
   console.log("[addTimeSlot] called", newTimeSlot, "professionalId:", professionalId);
   console.log("[addTimeSlot] called", newTimeSlot);
 
     if (!professionalId) return
 
     try {
-      const { data, error } = await supabase
+      const token = await getToken();
+      if (!token) {
+        toast({ title: "Error", description: "Could not get authentication token", variant: "destructive" });
+        return;
+      }
+      const supabaseAuth = createSupabaseClientWithToken(token);
+      const { data, error } = await supabaseAuth
         .from("availability_slots")
         .insert([
           {
@@ -167,19 +180,27 @@ setProfessionalId(userData.clerk_id)
     }
   }
 
-  const removeTimeSlot = async (id: string) => {
-  console.log("[removeTimeSlot] called", id, "professionalId:", professionalId);
-  console.log("[removeTimeSlot] called", id);
+  // Ensure async for getToken
+const removeTimeSlot = async (id: string) => {
+  if (!professionalId || !isSignedIn) {
+    toast({ title: "Error", description: "Not signed in or missing provider info", variant: "destructive" });
+    return;
+  }
+    console.log("[removeTimeSlot] called", id, "professionalId:", professionalId);
+    console.log("[removeTimeSlot] called", id);
+    if (!professionalId) return;
     try {
-      const { error } = await supabase.from("availability_slots").delete().eq("id", id)
+      const token = await getToken();
+      if (!token) {
+        toast({ title: "Error", description: "Could not get authentication token", variant: "destructive" });
+        return;
+      }
+      const supabaseAuth = createSupabaseClientWithToken(token);
+      const { error } = await supabaseAuth.from("availability_slots").delete().eq("id", id);
 
-      if (error) throw error
+      if (error) throw error;
 
-      setTimeSlots(prev => {
-        const updated = prev.filter((slot) => slot.id !== id);
-        console.log("[removeTimeSlot] Updated timeSlots:", updated);
-        return updated;
-      })
+      setTimeSlots(prev => prev.filter(slot => slot.id !== id))
       toast({
         title: "Time slot removed",
       })
@@ -193,21 +214,31 @@ setProfessionalId(userData.clerk_id)
     }
   }
 
-  const saveSettings = async () => {
-  console.log("[saveSettings] called", { sessionRate, bufferTime }, "professionalId:", professionalId);
-  console.log("[saveSettings] called", { sessionRate, bufferTime });
+  // Ensure async for getToken
+const saveSettings = async () => {
+  if (!professionalId || !isSignedIn) {
+    toast({ title: "Error", description: "Not signed in or missing provider info", variant: "destructive" });
+    return;
+  }
+    console.log("[saveSettings] called", { sessionRate, bufferTime }, "professionalId:", professionalId);
+    console.log("[saveSettings] called", { sessionRate, bufferTime });
     if (!professionalId) return
 
     console.log("[saveSettings] setSaving(true)");
     setSaving(true)
     try {
-      const { error } = await supabase
+      const token = await getToken();
+      if (!token) {
+        toast({ title: "Error", description: "Could not get authentication token", variant: "destructive" });
+        return;
+      }
+      const supabaseAuth = createSupabaseClientWithToken(token);
+      const { error } = await supabaseAuth
         .from("professional_profiles")
         .update({
           rate_per_15min: Number.parseFloat(sessionRate),
         })
-        .eq("id", professionalId)
-
+        .eq("user_id", professionalId)
       if (error) throw error
 
       toast({
@@ -227,7 +258,12 @@ setProfessionalId(userData.clerk_id)
     }
   }
 
-  const blockDate = async () => {
+  // Ensure async for getToken
+const blockDate = async () => {
+  if (!professionalId || !isSignedIn) {
+    toast({ title: "Error", description: "Not signed in or missing provider info", variant: "destructive" });
+    return;
+  }
   console.log("[blockDate] called", date, "professionalId:", professionalId);
   console.log("[blockDate] called", date);
     if (!date || !professionalId) {
@@ -238,7 +274,13 @@ setProfessionalId(userData.clerk_id)
     const dateString = date.toISOString().split("T")[0]
 
     try {
-      const { data, error } = await supabase
+      const token = await getToken();
+      if (!token) {
+        toast({ title: "Error", description: "Could not get authentication token", variant: "destructive" });
+        return;
+      }
+      const supabaseAuth = createSupabaseClientWithToken(token);
+      const { data, error } = await supabaseAuth
         .from("blocked_dates")
         .insert([
           {
@@ -332,6 +374,19 @@ setProfessionalId(userData.clerk_id)
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
+  {/* Debug output for userData.clerk_id */}
+  <div style={{ background: '#e3e3ff', padding: '8px', borderRadius: '4px', fontSize: 12, marginBottom: 8 }}>
+    <strong>Debug: userData.clerk_id</strong>
+    <pre>{JSON.stringify(userData?.clerk_id, null, 2)}</pre>
+  </div>
+  {/* Debug output for fetched timeSlots */}
+  <div style={{ background: '#f5f5f5', padding: '8px', borderRadius: '4px', fontSize: 12, marginBottom: 8 }}>
+    <strong>Debug: timeSlots</strong>
+    <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(timeSlots, null, 2)}</pre>
+  </div>
+  {(!Array.isArray(timeSlots) || timeSlots.length === 0) && (
+    <div className="text-sm text-gray-500">No availability slots found for your account.</div>
+  )}
                 <div className="flex justify-between items-center">
                   <h3 className="text-sm font-medium">Time Slots</h3>
                   <div className="flex items-center gap-2">
