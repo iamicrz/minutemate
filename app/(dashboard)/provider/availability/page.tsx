@@ -374,19 +374,7 @@ const blockDate = async () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-  {/* Debug output for userData.clerk_id */}
-  <div style={{ background: '#e3e3ff', padding: '8px', borderRadius: '4px', fontSize: 12, marginBottom: 8 }}>
-    <strong>Debug: userData.clerk_id</strong>
-    <pre>{JSON.stringify(userData?.clerk_id, null, 2)}</pre>
-  </div>
-  {/* Debug output for fetched timeSlots */}
-  <div style={{ background: '#f5f5f5', padding: '8px', borderRadius: '4px', fontSize: 12, marginBottom: 8 }}>
-    <strong>Debug: timeSlots</strong>
-    <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(timeSlots, null, 2)}</pre>
-  </div>
-  {(!Array.isArray(timeSlots) || timeSlots.length === 0) && (
-    <div className="text-sm text-gray-500">No availability slots found for your account.</div>
-  )}
+  
                 <div className="flex justify-between items-center">
                   <h3 className="text-sm font-medium">Time Slots</h3>
                   <div className="flex items-center gap-2">
