@@ -53,6 +53,7 @@ export default function AvailabilityPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [date, setDate] = useState<Date | undefined>(new Date())
+const [blocking, setBlocking] = useState(false)
   const [newTimeSlot, setNewTimeSlot] = useState({
     day_of_week: 1,
     start_time: "09:00",
@@ -260,6 +261,9 @@ const saveSettings = async () => {
 
   // Ensure async for getToken
 const blockDate = async () => {
+  if (blocking) return;
+  setBlocking(true);
+
   if (!professionalId || !isSignedIn) {
     toast({ title: "Error", description: "Not signed in or missing provider info", variant: "destructive" });
     return;
@@ -268,10 +272,12 @@ const blockDate = async () => {
   console.log("[blockDate] called", date);
     if (!date || !professionalId) {
     console.warn("[blockDate] missing date or professionalId", { date, professionalId });
+    toast({ title: "Error", description: "Missing date or provider profile. Please reload the page or contact support.", variant: "destructive" });
+    setBlocking(false);
     return;
   }
 
-    const dateString = date.toISOString().split("T")[0]
+    const dateString = formatDateYYYYMMDD(date)
 
     try {
       const token = await getToken();
@@ -303,43 +309,73 @@ const blockDate = async () => {
         title: "Date blocked",
         description: `${date.toLocaleDateString()} has been marked as unavailable`,
       })
+      setDate(undefined); // Clear the selected date after successful block
     } catch (error) {
-      console.error("Error blocking date:", error)
+      let errorMsg = "Failed to block date";
+      let isDuplicate = false;
+      if (error && typeof error === "object" && "code" in error && (error as any).code === "23505") {
+        errorMsg = "This date is already blocked.";
+        isDuplicate = true;
+      } else {
+        // Only log unexpected errors
+        console.error("Error blocking date:", error);
+      }
       toast({
         title: "Error",
-        description: "Failed to block date",
+        description: errorMsg,
         variant: "destructive",
       })
+    } finally {
+      setBlocking(false);
     }
   }
 
   const removeBlockedDate = async (id: string) => {
-  console.log("[removeBlockedDate] called", id, "professionalId:", professionalId);
-  console.log("[removeBlockedDate] called", id);
     try {
-      const { error } = await supabase.from("blocked_dates").delete().eq("id", id)
-
-      if (error) throw error
-
-      setBlockedDates(prev => {
-        const updated = prev.filter((date) => date.id !== id);
-        console.log("[removeBlockedDate] Updated blockedDates:", updated);
-        return updated;
-      })
-      toast({
-        title: "Blocked date removed",
-      })
+      const token = await getToken();
+      if (!token) {
+        toast({
+          title: "Error",
+          description: "Could not get authentication token",
+          variant: "destructive",
+        });
+        return;
+      }
+      const supabaseAuth = createSupabaseClientWithToken(token);
+      const { error } = await supabaseAuth.from("blocked_dates").delete().eq("id", id);
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to remove blocked date",
+          variant: "destructive",
+        });
+        return;
+      }
+      setBlockedDates(prev => prev.filter((date) => date.id !== id));
+      toast({ title: "Blocked date removed" });
     } catch (error) {
-      console.error("Error removing blocked date:", error)
       toast({
         title: "Error",
         description: "Failed to remove blocked date",
         variant: "destructive",
-      })
+      });
     }
   }
 
   if (!userData) return null
+
+  // Utility to format date as YYYY-MM-DD in local time
+  function formatDateYYYYMMDD(date: Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  // Prevent duplicate blocked dates
+  const isDateBlocked = !!blockedDates.find(
+    (d) => d.blocked_date === (date ? formatDateYYYYMMDD(date) : undefined)
+  );
 
   if (loading) {
     return (
@@ -450,50 +486,59 @@ const blockDate = async () => {
         </TabsContent>
 
         <TabsContent value="calendar" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Calendar</CardTitle>
-                <CardDescription>Block specific dates or add special availability</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Calendar mode="single" selected={date} onSelect={setDate} className="border rounded-md" />
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button variant="outline" onClick={blockDate} disabled={!date}>
-                  Block Date
-                </Button>
-              </CardFooter>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Upcoming Blocked Dates</CardTitle>
-                <CardDescription>Dates you've marked as unavailable</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {blockedDates.length === 0 ? (
-                    <div className="text-center py-4 text-muted-foreground">No blocked dates</div>
-                  ) : (
-                    blockedDates.map((blockedDate) => (
-                      <div key={blockedDate.id} className="flex items-center justify-between border-b pb-4">
-                        <div className="flex items-center gap-2">
-                          <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                          <span>{new Date(blockedDate.blocked_date).toLocaleDateString()}</span>
-                        </div>
-                        <Button variant="ghost" size="sm" onClick={() => removeBlockedDate(blockedDate.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                          <span className="sr-only">Remove</span>
-                        </Button>
-                      </div>
-                    ))
-                  )}
+  <div className="grid gap-6 md:grid-cols-2">
+    {/* Calendar and Block Date */}
+    <Card>
+      <CardHeader>
+        <CardTitle>Calendar</CardTitle>
+        <CardDescription>Block specific dates or add special availability</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Calendar mode="single" selected={date} onSelect={setDate} className="border rounded-md" />
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button
+          variant="outline"
+          onClick={blockDate}
+          disabled={!date || !professionalId || blocking || isDateBlocked}
+        >
+          {blocking
+            ? "Blocking..."
+            : isDateBlocked
+            ? "Already Blocked"
+            : "Block Date"}
+        </Button>
+      </CardFooter>
+    </Card>
+    {/* Upcoming Blocked Dates */}
+    <Card>
+      <CardHeader>
+        <CardTitle>Upcoming Blocked Dates</CardTitle>
+        <CardDescription>Dates you've marked as unavailable</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {blockedDates.length === 0 ? (
+            <div className="text-center py-4 text-muted-foreground">No blocked dates</div>
+          ) : (
+            blockedDates.map((blockedDate) => (
+              <div key={blockedDate.id} className="flex items-center justify-between border-b pb-4">
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                  <span>{new Date(blockedDate.blocked_date).toLocaleDateString()}</span>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+                <Button variant="ghost" size="sm" onClick={() => removeBlockedDate(blockedDate.id)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                  <span className="sr-only">Remove</span>
+                </Button>
+              </div>
+            ))
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  </div>
+</TabsContent>
 
         <TabsContent value="settings" className="space-y-6">
           <Card>
