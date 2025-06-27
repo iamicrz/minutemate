@@ -28,9 +28,7 @@ CREATE POLICY "Providers can view their own profile"
 
 CREATE POLICY "Providers can update their own profile"
   ON professional_profiles FOR UPDATE
-  USING (user_id IN (
-    SELECT id FROM users WHERE clerk_id::text = auth.uid()::text
-  ));
+  USING (user_id::text = auth.uid()::text);
 
 -- Bookings table policies
 CREATE POLICY "Seekers can view their own bookings"

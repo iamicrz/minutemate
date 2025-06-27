@@ -10,9 +10,11 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/components/ui/use-toast"
+import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
 import { useUserData } from "@/hooks/use-user"
 import { supabase, createSupabaseClientWithToken } from "@/lib/supabase"
-import { useAuth } from "@clerk/clerk-react"
+import { useAuth } from "@clerk/nextjs"
 import { CalendarDays, Plus, Save, Trash2 } from "lucide-react"
 
 interface TimeSlot {
@@ -44,10 +46,9 @@ export default function AvailabilityPage() {
   const router = useRouter()
   const { toast } = useToast()
   const { userData } = useUserData()
-  // professionalId is always a string (never null)
-  const [professionalId, setProfessionalId] = useState<string>("");
-// professionalId should always be the id from professional_profiles, which is fetched using userData.clerk_id
-// All inserts should use this value as the foreign key
+  // We need both IDs for different operations
+  const [clerkId, setClerkId] = useState<string>(""); // The Clerk user_id (text)
+  const [supabaseId, setSupabaseId] = useState<string>(""); // The Supabase UUID
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([])
   const [loading, setLoading] = useState(true)
@@ -61,6 +62,9 @@ const [blocking, setBlocking] = useState(false)
   })
   const [sessionRate, setSessionRate] = useState("75")
   const [bufferTime, setBufferTime] = useState("15")
+  const [maxAdvanceBookingDays, setMaxAdvanceBookingDays] = useState(30)
+  const [minAdvanceBookingHours, setMinAdvanceBookingHours] = useState(24)
+  const [autoAcceptBookings, setAutoAcceptBookings] = useState(true)
 
   useEffect(() => {
     if (!userData || userData.role !== "provider") {
@@ -91,12 +95,32 @@ const [blocking, setBlocking] = useState(false)
 
       if (profileError) throw profileError
 
-      // Set professionalId to Clerk user ID, matching the foreign key
+      // Store both IDs for different operations
       if (!userData?.clerk_id) throw new Error("No Clerk user ID found");
-      setProfessionalId(userData.clerk_id);
-      setSessionRate(profile.rate_per_15min?.toString?.() ?? "");
+      setClerkId(userData.clerk_id); // The Clerk ID for querying professional_profiles
+      setSupabaseId(userData.id); // The Supabase UUID for other operations
+      
+      // Set the default session rate from professional_profiles
+      setSessionRate(profile.rate_per_15min?.toString?.() ?? "75");
+      
+      // Check if we have session_settings data (which overrides professional_profiles)
+      const { data: sessionSettings, error: settingsError } = await supabase
+        .from("session_settings")
+        .select("*")
+        .eq("professional_id", userData.clerk_id)
+        .maybeSingle();
+      
+      console.log("[fetchData] session settings fetch result:", sessionSettings, "error:", settingsError);
+      
+      if (!settingsError && sessionSettings) {
+        // We have session settings, so use the buffer time and other settings from there
+        setBufferTime(sessionSettings.buffer_time_minutes?.toString() ?? "15");
+        setMaxAdvanceBookingDays(sessionSettings.max_advance_booking_days ?? 30);
+        setMinAdvanceBookingHours(sessionSettings.min_advance_booking_hours ?? 24);
+        setAutoAcceptBookings(sessionSettings.auto_accept_bookings ?? true);
+      }
 
-      // Fetch availability slots using professionalId (Clerk user ID)
+      // Fetch availability slots using clerk_id
       const { data: slotsData, error: slotsError } = await supabase
         .from("availability_slots")
         .select("*")
@@ -107,7 +131,7 @@ const [blocking, setBlocking] = useState(false)
       if (slotsError) throw slotsError;
       setTimeSlots(slotsData || []);
 
-      // Fetch blocked dates using professionalId (Clerk user ID)
+      // Fetch blocked dates using clerk_id
       const { data: blockedData, error: blockedError } = await supabase
         .from("blocked_dates")
         .select("*")
@@ -130,15 +154,15 @@ const [blocking, setBlocking] = useState(false)
   }
 
   // Ensure async for getToken
-const addTimeSlot = async () => {
-  if (!professionalId || !isSignedIn) {
-    toast({ title: "Error", description: "Not signed in or missing provider info", variant: "destructive" });
-    return;
-  }
-  console.log("[addTimeSlot] called", newTimeSlot, "professionalId:", professionalId);
-  console.log("[addTimeSlot] called", newTimeSlot);
+  const addTimeSlot = async () => {
+    if (!clerkId || !isSignedIn) {
+      toast({ title: "Error", description: "Not signed in or missing provider info", variant: "destructive" });
+      return;
+    }
+    console.log("[addTimeSlot] called", newTimeSlot, "clerkId:", clerkId);
+    console.log("[addTimeSlot] called", newTimeSlot);
 
-    if (!professionalId) return
+    if (!clerkId) return
 
     try {
       const token = await getToken();
@@ -146,12 +170,12 @@ const addTimeSlot = async () => {
         toast({ title: "Error", description: "Could not get authentication token", variant: "destructive" });
         return;
       }
-      const supabaseAuth = createSupabaseClientWithToken(token);
-      const { data, error } = await supabaseAuth
+      const supabaseAuthAvailability = createSupabaseClientWithToken(token, supabaseId);
+      const { data, error } = await supabaseAuthAvailability
         .from("availability_slots")
         .insert([
           {
-            professional_id: professionalId,
+            professional_id: clerkId,
             day_of_week: newTimeSlot.day_of_week,
             start_time: newTimeSlot.start_time,
             end_time: newTimeSlot.end_time,
@@ -182,22 +206,22 @@ const addTimeSlot = async () => {
   }
 
   // Ensure async for getToken
-const removeTimeSlot = async (id: string) => {
-  if (!professionalId || !isSignedIn) {
-    toast({ title: "Error", description: "Not signed in or missing provider info", variant: "destructive" });
-    return;
-  }
-    console.log("[removeTimeSlot] called", id, "professionalId:", professionalId);
+  const removeTimeSlot = async (id: string) => {
+    if (!clerkId || !isSignedIn) {
+      toast({ title: "Error", description: "Not signed in or missing provider info", variant: "destructive" });
+      return;
+    }
+    console.log("[removeTimeSlot] called", id, "clerkId:", clerkId);
     console.log("[removeTimeSlot] called", id);
-    if (!professionalId) return;
+    if (!clerkId) return;
     try {
       const token = await getToken();
       if (!token) {
         toast({ title: "Error", description: "Could not get authentication token", variant: "destructive" });
         return;
       }
-      const supabaseAuth = createSupabaseClientWithToken(token);
-      const { error } = await supabaseAuth.from("availability_slots").delete().eq("id", id);
+      const supabaseAuthAvailability = createSupabaseClientWithToken(token, supabaseId);
+      const { error } = await supabaseAuthAvailability.from("availability_slots").delete().eq("id", id);
 
       if (error) throw error;
 
@@ -216,66 +240,149 @@ const removeTimeSlot = async (id: string) => {
   }
 
   // Ensure async for getToken
-const saveSettings = async () => {
-  if (!professionalId || !isSignedIn) {
-    toast({ title: "Error", description: "Not signed in or missing provider info", variant: "destructive" });
-    return;
-  }
-    console.log("[saveSettings] called", { sessionRate, bufferTime }, "professionalId:", professionalId);
-    console.log("[saveSettings] called", { sessionRate, bufferTime });
-    if (!professionalId) return
-
-    console.log("[saveSettings] setSaving(true)");
-    setSaving(true)
+  const saveSettings = async () => {
+    if (!clerkId || !supabaseId || !isSignedIn) {
+      toast({ title: "Error", description: "Not signed in or missing provider info", variant: "destructive" });
+      return;
+    }
+    // Log all arguments for debugging
+    console.log("[saveSettings] called", { 
+      sessionRate, 
+      bufferTime, 
+      maxAdvanceBookingDays, 
+      minAdvanceBookingHours, 
+      autoAcceptBookings, 
+      clerkId, 
+      supabaseId 
+    });
+    setSaving(true);
     try {
+      // STEP 1: Update professional_profiles table using basic supabase client
+      // This avoids UUID issues since professional_profiles uses TEXT IDs
       const token = await getToken();
       if (!token) {
         toast({ title: "Error", description: "Could not get authentication token", variant: "destructive" });
         return;
       }
-      const supabaseAuth = createSupabaseClientWithToken(token);
-      const { error } = await supabaseAuth
+      const supabaseAuthAvailability = createSupabaseClientWithToken(token, supabaseId);
+      const profileUpdatePayload = {
+        rate_per_15min: Number.parseFloat(sessionRate)
+      };
+      
+      console.log("[saveSettings] updating professional_profiles", {
+        payload: profileUpdatePayload,
+        filter: { user_id: clerkId }
+      });
+      
+      // For professional_profiles, use the regular supabase client
+      const { error: profileError } = await supabase
         .from("professional_profiles")
-        .update({
+        .update(profileUpdatePayload)
+        .eq("user_id", clerkId); // Use clerk_id for professional_profiles (TEXT type)
+      
+      if (profileError) {
+        console.error("Error updating professional profile:", profileError);
+        throw profileError;
+      }
+      
+      // STEP 2: Now add/update session_settings
+      // First check if a session_settings record exists
+      const { data: existingSettings, error: checkError } = await supabase
+        .from("session_settings")
+        .select("id")
+        .eq("professional_id", clerkId)
+        .maybeSingle();
+      
+      if (checkError) {
+        console.error("Error checking session settings:", checkError);
+        throw checkError;
+      }
+      
+      const sessionSettingsPayload = {
+        buffer_time_minutes: parseInt(bufferTime),
+        rate_per_15min: Number.parseFloat(sessionRate),
+        max_advance_booking_days: maxAdvanceBookingDays,
+        min_advance_booking_hours: minAdvanceBookingHours,
+        auto_accept_bookings: autoAcceptBookings,
+        updated_at: new Date().toISOString()
+      };
+      let settingsResult;
+      const supabaseAuthSettings = createSupabaseClientWithToken(token, clerkId);
+      if (existingSettings?.id) {
+        // Update existing settings record
+        console.log("[saveSettings] updating existing session_settings", {
+          id: existingSettings.id,
+          payload: sessionSettingsPayload
+        });
+        settingsResult = await supabaseAuthSettings
+          .from("session_settings")
+          .update(sessionSettingsPayload)
+          .eq("id", existingSettings.id)
+          .select();
+      } else {
+        // Create new settings record
+        console.log("[saveSettings] creating new session_settings", {
+          professional_id: clerkId,
+          payload: sessionSettingsPayload
+        });
+        // Log the final payload
+        console.log("[saveSettings] final insert payload:", {
+          professional_id: clerkId,
+          ...sessionSettingsPayload
+        });
+        // Explicitly construct the payload to ensure only correct fields are sent
+        const insertPayload = {
+          professional_id: clerkId,
+          buffer_time_minutes: parseInt(bufferTime),
           rate_per_15min: Number.parseFloat(sessionRate),
-        })
-        .eq("user_id", professionalId)
-      if (error) throw error
-
+          max_advance_booking_days: maxAdvanceBookingDays,
+          min_advance_booking_hours: minAdvanceBookingHours,
+          auto_accept_bookings: autoAcceptBookings,
+          updated_at: new Date().toISOString()
+        };
+        console.log("[saveSettings] KEYS OF FINAL INSERT PAYLOAD:", Object.keys(insertPayload));
+        console.log("[saveSettings] VALUES OF FINAL INSERT PAYLOAD:", insertPayload);
+        settingsResult = await supabaseAuthSettings
+          .from("session_settings")
+          .insert(insertPayload);
+      }
+      if (settingsResult.error) {
+        console.error("Error with session settings operation:", settingsResult.error);
+        throw settingsResult.error;
+      }
       toast({
         title: "Settings saved",
-        description: "Your availability settings have been updated",
-      })
-    } catch (error) {
-      console.error("Error saving settings:", error)
+        description: "Your session settings have been updated",
+      });
+    } catch (error: any) {
+      console.error("Error saving settings:", error);
       toast({
         title: "Error",
-        description: "Failed to save settings",
+        description: "Failed to save settings: " + (error?.message || JSON.stringify(error)),
         variant: "destructive",
-      })
+      });
     } finally {
-      console.log("[saveSettings] setSaving(false)");
-      setSaving(false)
+      setSaving(false);
     }
   }
 
   // Ensure async for getToken
-const blockDate = async () => {
-  if (blocking) return;
-  setBlocking(true);
+  const blockDate = async () => {
+    if (blocking) return;
+    setBlocking(true);
 
-  if (!professionalId || !isSignedIn) {
-    toast({ title: "Error", description: "Not signed in or missing provider info", variant: "destructive" });
-    return;
-  }
-  console.log("[blockDate] called", date, "professionalId:", professionalId);
-  console.log("[blockDate] called", date);
-    if (!date || !professionalId) {
-    console.warn("[blockDate] missing date or professionalId", { date, professionalId });
-    toast({ title: "Error", description: "Missing date or provider profile. Please reload the page or contact support.", variant: "destructive" });
-    setBlocking(false);
-    return;
-  }
+    if (!clerkId || !isSignedIn) {
+      toast({ title: "Error", description: "Not signed in or missing provider info", variant: "destructive" });
+      return;
+    }
+    console.log("[blockDate] called", date, "clerkId:", clerkId);
+    console.log("[blockDate] called", date);
+    if (!date || !clerkId) {
+      console.warn("[blockDate] missing date or clerkId", { date, clerkId });
+      toast({ title: "Error", description: "Missing date or provider profile. Please reload the page or contact support.", variant: "destructive" });
+      setBlocking(false);
+      return;
+    }
 
     const dateString = formatDateYYYYMMDD(date)
 
@@ -285,12 +392,12 @@ const blockDate = async () => {
         toast({ title: "Error", description: "Could not get authentication token", variant: "destructive" });
         return;
       }
-      const supabaseAuth = createSupabaseClientWithToken(token);
-      const { data, error } = await supabaseAuth
+      const supabaseAuthAvailability = createSupabaseClientWithToken(token, supabaseId);
+      const { data, error } = await supabaseAuthAvailability
         .from("blocked_dates")
         .insert([
           {
-            professional_id: professionalId,
+            professional_id: clerkId,
             blocked_date: dateString,
             reason: "Unavailable",
           },
@@ -341,8 +448,8 @@ const blockDate = async () => {
         });
         return;
       }
-      const supabaseAuth = createSupabaseClientWithToken(token);
-      const { error } = await supabaseAuth.from("blocked_dates").delete().eq("id", id);
+      const supabaseAuthAvailability = createSupabaseClientWithToken(token, supabaseId);
+      const { error } = await supabaseAuthAvailability.from("blocked_dates").delete().eq("id", id);
       if (error) {
         toast({
           title: "Error",
@@ -486,59 +593,59 @@ const blockDate = async () => {
         </TabsContent>
 
         <TabsContent value="calendar" className="space-y-6">
-  <div className="grid gap-6 md:grid-cols-2">
-    {/* Calendar and Block Date */}
-    <Card>
-      <CardHeader>
-        <CardTitle>Calendar</CardTitle>
-        <CardDescription>Block specific dates or add special availability</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Calendar mode="single" selected={date} onSelect={setDate} className="border rounded-md" />
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button
-          variant="outline"
-          onClick={blockDate}
-          disabled={!date || !professionalId || blocking || isDateBlocked}
-        >
-          {blocking
-            ? "Blocking..."
-            : isDateBlocked
-            ? "Already Blocked"
-            : "Block Date"}
-        </Button>
-      </CardFooter>
-    </Card>
-    {/* Upcoming Blocked Dates */}
-    <Card>
-      <CardHeader>
-        <CardTitle>Upcoming Blocked Dates</CardTitle>
-        <CardDescription>Dates you've marked as unavailable</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {blockedDates.length === 0 ? (
-            <div className="text-center py-4 text-muted-foreground">No blocked dates</div>
-          ) : (
-            blockedDates.map((blockedDate) => (
-              <div key={blockedDate.id} className="flex items-center justify-between border-b pb-4">
-                <div className="flex items-center gap-2">
-                  <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                  <span>{new Date(blockedDate.blocked_date).toLocaleDateString()}</span>
-                </div>
-                <Button variant="ghost" size="sm" onClick={() => removeBlockedDate(blockedDate.id)}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                  <span className="sr-only">Remove</span>
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Calendar and Block Date */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Calendar</CardTitle>
+                <CardDescription>Block specific dates or add special availability</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Calendar mode="single" selected={date} onSelect={setDate} className="border rounded-md" />
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button
+                  variant="outline"
+                  onClick={blockDate}
+                  disabled={!date || !clerkId || blocking || isDateBlocked}
+                >
+                  {blocking
+                    ? "Blocking..."
+                    : isDateBlocked
+                    ? "Already Blocked"
+                    : "Block Date"}
                 </Button>
-              </div>
-            ))
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  </div>
-</TabsContent>
+              </CardFooter>
+            </Card>
+            {/* Upcoming Blocked Dates */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Upcoming Blocked Dates</CardTitle>
+                <CardDescription>Dates you've marked as unavailable</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {blockedDates.length === 0 ? (
+                    <div className="text-center py-4 text-muted-foreground">No blocked dates</div>
+                  ) : (
+                    blockedDates.map((blockedDate) => (
+                      <div key={blockedDate.id} className="flex items-center justify-between border-b pb-4">
+                        <div className="flex items-center gap-2">
+                          <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                          <span>{new Date(blockedDate.blocked_date).toLocaleDateString()}</span>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => removeBlockedDate(blockedDate.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <span className="sr-only">Remove</span>
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
         <TabsContent value="settings" className="space-y-6">
           <Card>
@@ -547,60 +654,106 @@ const blockDate = async () => {
               <CardDescription>Configure your session pricing and durations</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="session-rate">Rate per 15 minutes (USD)</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
-                  <Input
-                    id="session-rate"
-                    type="number"
-                    className="pl-7"
-                    value={sessionRate}
-                    onChange={(e) => setSessionRate(e.target.value)}
-                  />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  This is the base rate for a 15-minute session. Longer sessions will be priced accordingly.
-                </p>
-              </div>
+  {/* Top row: Session Rate input and Auto Accept Switch */}
+  <div className="flex flex-col gap-2 max-w-xs">
+    <Label>Session Rate ($/15min)</Label>
+    <Input
+      type="number"
+      min={0}
+      value={sessionRate}
+      onChange={(e) => setSessionRate(e.target.value)}
+      className="w-32"
+    />
+    <div className="flex items-center gap-2 mt-2">
+      <Switch
+        id="auto-accept-bookings"
+        checked={autoAcceptBookings}
+        onCheckedChange={setAutoAcceptBookings}
+        className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-muted border-2 border-primary"
+      />
+      <Label htmlFor="auto-accept-bookings" className="text-muted-foreground text-sm font-normal">Auto Accept Bookings</Label>
+    </div>
+  </div>
 
-              <div className="space-y-2">
-                <Label>Pricing Preview</Label>
-                <div className="border rounded-md divide-y">
-                  <div className="grid grid-cols-2 px-4 py-3">
-                    <div className="font-medium">15 minutes</div>
-                    <div className="text-right">${Number(sessionRate).toFixed(2)}</div>
-                  </div>
-                  <div className="grid grid-cols-2 px-4 py-3">
-                    <div className="font-medium">30 minutes</div>
-                    <div className="text-right">${(Number(sessionRate) * 2).toFixed(2)}</div>
-                  </div>
-                  <div className="grid grid-cols-2 px-4 py-3">
-                    <div className="font-medium">60 minutes</div>
-                    <div className="text-right">${(Number(sessionRate) * 4).toFixed(2)}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Buffer Time Between Sessions</Label>
-                <Select value={bufferTime} onValueChange={setBufferTime}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select buffer time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">No buffer</SelectItem>
-                    <SelectItem value="5">5 minutes</SelectItem>
-                    <SelectItem value="10">10 minutes</SelectItem>
-                    <SelectItem value="15">15 minutes</SelectItem>
-                    <SelectItem value="30">30 minutes</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground">
-                  Buffer time ensures you have a break between consecutive sessions.
-                </p>
-              </div>
-            </CardContent>
+  {/* Sliders and Previews side by side */}
+  <div className="flex flex-col md:flex-row md:gap-10">
+    {/* Sliders */}
+    <div className="flex-1 flex items-stretch">
+      <div className="flex flex-col justify-between w-full min-h-[220px] bg-white rounded-l-md border-l border-t border-b border-muted/30 shadow-lg p-6 gap-7">
+        <div>
+          <Label>Buffer Time (min)</Label>
+          <div className="flex items-center gap-4 mt-1">
+            <Slider
+              min={0}
+              max={120}
+              step={5}
+              value={[Number(bufferTime)]}
+              onValueChange={([val]: number[]) => setBufferTime(val.toString())}
+              className="w-64"
+            />
+            <span className="w-14 text-right font-medium">{bufferTime} min</span>
+          </div>
+        </div>
+        <div>
+          <Label htmlFor="max-advance-booking-days">Max Advance Booking Days</Label>
+          <div className="flex items-center gap-4 mt-1">
+            <Slider
+              min={1}
+              max={90}
+              step={1}
+              value={[maxAdvanceBookingDays]}
+              onValueChange={([val]: number[]) => setMaxAdvanceBookingDays(val)}
+              className="w-64"
+            />
+            <span className="w-14 text-right font-medium">{maxAdvanceBookingDays} days</span>
+          </div>
+        </div>
+        <div>
+          <Label htmlFor="min-advance-booking-hours">Min Advance Booking Hours</Label>
+          <div className="flex items-center gap-4 mt-1">
+            <Slider
+              min={0}
+              max={72}
+              step={1}
+              value={[minAdvanceBookingHours]}
+              onValueChange={([val]: number[]) => setMinAdvanceBookingHours(val)}
+              className="w-64"
+            />
+            <span className="w-14 text-right font-medium">{minAdvanceBookingHours} hrs</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    {/* Pricing Preview Table */}
+    <div className="flex-1 flex items-stretch mt-8 md:mt-0">
+      <div className="rounded-md border border-muted/30 shadow-lg bg-white px-6 py-5 flex flex-col justify-center w-full min-h-[220px]">
+        <div className="font-semibold text-base mb-3 text-primary">Pricing Preview</div>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-muted-foreground border-b">
+              <th className="text-left font-normal pb-1">Duration</th>
+              <th className="text-right font-normal pb-1">Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="pl-1 py-1 text-base font-medium text-foreground">15 minutes</td>
+              <td className="text-right pr-1 py-1 font-semibold text-primary">${Number(sessionRate).toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td className="pl-1 py-1 text-base font-medium text-foreground">30 minutes</td>
+              <td className="text-right pr-1 py-1 font-semibold text-primary">${(Number(sessionRate) * 2).toFixed(2)}</td>
+            </tr>
+            <tr className="bg-[#f3e8ff] rounded-md">
+              <td className="pl-1 py-1 text-base font-bold text-[#7c3aed]">60 minutes</td>
+              <td className="text-right pr-1 py-1 font-bold text-[#7c3aed]">${(Number(sessionRate) * 4).toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</CardContent>
             <CardFooter>
               <Button onClick={saveSettings} className="w-full" disabled={saving}>
                 {saving ? "Saving..." : "Save Settings"}

@@ -1,7 +1,7 @@
 -- Table for providers to block specific dates when unavailable
 CREATE TABLE IF NOT EXISTS blocked_dates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  professional_id UUID NOT NULL REFERENCES professional_profiles(id) ON DELETE CASCADE,
+  professional_id TEXT NOT NULL REFERENCES professional_profiles(user_id) ON DELETE CASCADE,
   blocked_date DATE NOT NULL,
   reason TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

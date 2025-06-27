@@ -71,8 +71,14 @@ export const getSupabase = () => {
 // Export the singleton instance
 export const supabase = getSupabase();
 
-export function createSupabaseClientWithToken(token: string) {
-  return createClient(
+// Expose supabase client globally for debugging in browser console (safe for local dev)
+if (typeof window !== "undefined") {
+  // Extend Window interface to include supabase
+  (window as any).supabase = supabase;
+}
+
+export function createSupabaseClientWithToken(token: string, supabaseUserId?: string) {
+  const client = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -81,8 +87,39 @@ export function createSupabaseClientWithToken(token: string) {
           Authorization: `Bearer ${token}`,
         },
       },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      },
     }
   );
+  
+  // If supabaseUserId is provided, explicitly set it in the auth store
+  // This ensures proper UUID type is used for RLS policies
+  if (supabaseUserId) {
+    console.log("Setting explicit auth user ID:", supabaseUserId);
+    // Create a custom auth override using internal APIs
+    const session = {
+      access_token: token,
+      refresh_token: "",
+      expires_in: 3600,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      token_type: "bearer",
+      user: {
+        id: supabaseUserId,
+        app_metadata: { provider: "clerk" },
+        user_metadata: {},
+        aud: "authenticated",
+        role: "authenticated"
+      }
+    };
+    
+    // @ts-ignore - Using internal API to override session data
+    client.auth.setSession(session);
+  }
+  
+  return client;
 }
 
 // Test the connection with retries

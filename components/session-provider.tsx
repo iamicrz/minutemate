@@ -8,7 +8,8 @@ import { useToast } from "@/components/ui/use-toast"
 import type { Database } from "@/lib/database.types"
 
 type User = {
-  id: string
+  id: string       // Supabase UUID
+  clerk_id: string // Clerk user ID 
   name: string
   email: string
   image?: string
@@ -97,7 +98,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
             if (createdUser && isMounted) {
               console.log("Debug - New user created successfully:", createdUser)
               setUser({
-                id: createdUser.clerk_id,
+                id: createdUser.id,          // Using Supabase UUID as id
+                clerk_id: createdUser.clerk_id, // Store Clerk ID separately
                 name: createdUser.name,
                 email: createdUser.email,
                 image: clerkUser.imageUrl,
@@ -112,7 +114,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         } else if (existingUser && isMounted) {
           console.log("Debug - Existing user found:", existingUser)
           setUser({
-            id: existingUser.clerk_id,
+            id: existingUser.id,          // Using Supabase UUID as id
+            clerk_id: existingUser.clerk_id, // Store Clerk ID separately
             name: existingUser.name,
             email: existingUser.email,
             image: clerkUser.imageUrl,

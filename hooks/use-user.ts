@@ -264,7 +264,8 @@ const newUser = {
             console.log("Debug - New user created successfully:", createdUser)
             setUserData(createdUser)
             session?.setUser({
-              id: createdUser.id,
+              id: createdUser.id, // Using Supabase UUID as id
+              clerk_id: createdUser.clerk_id, // Store Clerk ID separately
               name: createdUser.name,
               email: createdUser.email,
               image: clerkUser.imageUrl,
@@ -294,7 +295,8 @@ const newUser = {
         if (existingUser) {
           setUserData(existingUser)
           session?.setUser({
-            id: existingUser.clerk_id,
+            id: existingUser.id, // Using Supabase UUID as id
+            clerk_id: existingUser.clerk_id, // Store Clerk ID separately
             name: existingUser.name,
             email: existingUser.email,
             image: clerkUser?.imageUrl,
